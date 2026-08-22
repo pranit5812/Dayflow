@@ -14,7 +14,7 @@ def send_email_sync(to_email: str, subject: str, html_content: str) -> bool:
     Supports STARTTLS (Port 587) or SSL (Port 465).
     """
     smtp_user = settings.SMTP_USER.strip()
-    smtp_password = settings.SMTP_PASSWORD.strip()
+    smtp_password = settings.SMTP_PASSWORD.strip().replace(" ", "")
     smtp_host = settings.SMTP_HOST.strip()
     smtp_port = settings.SMTP_PORT
     
