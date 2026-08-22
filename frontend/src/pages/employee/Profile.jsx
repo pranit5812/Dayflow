@@ -7,6 +7,19 @@ import {
   CheckCircle, Shield, Award, Landmark, CreditCard, Mail, Calendar, FileBadge, Lock
 } from 'lucide-react';
 
+const countryDialCodes = [
+  { code: '+91', country: 'India', flag: '🇮🇳', nationality: 'Indian' },
+  { code: '+1', country: 'United States', flag: '🇺🇸', nationality: 'American' },
+  { code: '+44', country: 'United Kingdom', flag: '🇬🇧', nationality: 'British' },
+  { code: '+1', country: 'Canada', flag: '🇨🇦', nationality: 'Canadian' },
+  { code: '+61', country: 'Australia', flag: '🇦🇺', nationality: 'Australian' },
+  { code: '+971', country: 'United Arab Emirates', flag: '🇦🇪', nationality: 'Emirati' },
+  { code: '+49', country: 'Germany', flag: '🇩🇪', nationality: 'German' },
+  { code: '+65', country: 'Singapore', flag: '🇸🇬', nationality: 'Singaporean' },
+  { code: '+33', country: 'France', flag: '🇫🇷', nationality: 'French' },
+  { code: '+81', country: 'Japan', flag: '🇯🇵', nationality: 'Japanese' },
+];
+
 export const Profile = () => {
   const { role, userProfile, setUserProfile } = useAuth();
   const [profile, setProfile] = useState(userProfile);
@@ -18,7 +31,8 @@ export const Profile = () => {
   const [activeTab, setActiveTab] = useState('personal');
 
   // Editable Personal Fields State
-  const [phone, setPhone] = useState('');
+  const [dialCode, setDialCode] = useState('+91');
+  const [phoneNum, setPhoneNum] = useState('');
   const [address, setAddress] = useState('');
   const [profilePic, setProfilePic] = useState('');
   const [personalEmail, setPersonalEmail] = useState('');
@@ -36,12 +50,30 @@ export const Profile = () => {
       try {
         const res = await employeeApi.getMyProfile();
         setProfile(res);
-        setPhone(res?.personal_details?.phone || '');
+        
+        const fullPhone = res?.personal_details?.phone || '';
+        const matchedCode = countryDialCodes.find(c => fullPhone.startsWith(c.code));
+        if (matchedCode) {
+          setDialCode(matchedCode.code);
+          setPhoneNum(fullPhone.replace(matchedCode.code, '').trim());
+        } else {
+          setDialCode('+91');
+          setPhoneNum(fullPhone);
+        }
+
         setAddress(res?.personal_details?.address || '');
         setProfilePic(res?.personal_details?.profile_picture_url || '');
         setPersonalEmail(res?.personal_details?.personal_email || '');
         setGender(res?.personal_details?.gender || 'Male');
-        setNationality(res?.personal_details?.nationality || 'Indian');
+        
+        const nat = res?.personal_details?.nationality || 'Indian';
+        setNationality(nat);
+        
+        const codeMatch = countryDialCodes.find(c => c.nationality.toLowerCase() === nat.toLowerCase() || c.country.toLowerCase() === nat.toLowerCase());
+        if (codeMatch && !matchedCode) {
+          setDialCode(codeMatch.code);
+        }
+
         setMaritalStatus(res?.personal_details?.marital_status || 'Single');
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -52,14 +84,24 @@ export const Profile = () => {
     fetchProfile();
   }, []);
 
+  const handleNationalityChange = (newNat) => {
+    setNationality(newNat);
+    const match = countryDialCodes.find(c => c.nationality.toLowerCase() === newNat.toLowerCase() || c.country.toLowerCase() === newNat.toLowerCase());
+    if (match) {
+      setDialCode(match.code);
+    }
+  };
+
   const handleSelfUpdate = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMsg('');
 
+    const formattedPhone = `${dialCode} ${phoneNum.trim()}`.trim();
+
     try {
       const updated = await employeeApi.updateMyProfile({
-        phone,
+        phone: formattedPhone,
         address,
         profile_picture_url: profilePic,
         personal_email: personalEmail,
@@ -189,17 +231,30 @@ export const Profile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                      Phone Number
+                      Phone Number (Dial Code)
                     </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                      <input
-                        type="text"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+1 555-0199"
-                        className="w-full pl-10 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white"
-                      />
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={dialCode}
+                        onChange={(e) => setDialCode(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white shrink-0"
+                      >
+                        {countryDialCodes.map((c, i) => (
+                          <option key={i} value={c.code}>
+                            {c.flag} {c.code} ({c.country})
+                          </option>
+                        ))}
+                      </select>
+                      <div className="relative w-full">
+                        <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                        <input
+                          type="text"
+                          value={phoneNum}
+                          onChange={(e) => setPhoneNum(e.target.value)}
+                          placeholder="98765 43210"
+                          className="w-full pl-10 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white font-mono"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -236,12 +291,17 @@ export const Profile = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Nationality</label>
-                    <input
-                      type="text"
+                    <select
                       value={nationality}
-                      onChange={(e) => setNationality(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white"
-                    />
+                      onChange={(e) => handleNationalityChange(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white font-semibold"
+                    >
+                      {countryDialCodes.map((c, i) => (
+                        <option key={i} value={c.nationality}>
+                          {c.flag} {c.nationality} ({c.country})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
