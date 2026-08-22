@@ -125,11 +125,18 @@ async def authenticate_user(login_data: UserLogin) -> TokenResponse:
     )
     refresh_token = create_refresh_token(subject=str(user["_id"]))
     
+    emp = await db.employees.find_one({"employee_id": user["employee_id"]})
+    full_name = emp.get("personal_details", {}).get("full_name") if emp else ""
+    if not full_name:
+        full_name = user.get("full_name") or user.get("email", "").split("@")[0].capitalize()
+    
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         role=user["role"],
-        employee_id=user["employee_id"]
+        employee_id=user["employee_id"],
+        full_name=full_name,
+        email=user.get("email", "")
     )
 
 async def refresh_access_token(refresh_token: str) -> dict:
