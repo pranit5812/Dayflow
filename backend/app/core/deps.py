@@ -13,10 +13,16 @@ async def get_current_user(request: Request, header_token: Optional[str] = Depen
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # 1. Try Bearer header token
-    token = header_token
+    token = None
     
-    # 2. Fallback to query parameter ?token=... (for direct download links)
+    # 1. Try Bearer header token
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    elif header_token:
+        token = header_token
+    
+    # 2. Fallback to query parameter ?token=... (for direct browser downloads)
     if not token:
         token = request.query_params.get("token")
         

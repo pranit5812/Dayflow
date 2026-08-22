@@ -49,14 +49,11 @@ export const Reports = () => {
   const handleDownloadCsv = async (url, fileName) => {
     setDownloading(fileName);
     try {
-      const token = localStorage.getItem('dayflow_token');
-      const fullUrl = url.includes('?') ? `${url}&token=${token || ''}` : `${url}?token=${token || ''}`;
-
-      const res = await axiosClient.get(url, {
+      const blobData = await axiosClient.get(url, {
         responseType: 'blob',
       });
 
-      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([blobData], { type: 'text/csv;charset=utf-8;' });
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
@@ -67,7 +64,7 @@ export const Reports = () => {
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Download error:', err);
-      const token = localStorage.getItem('dayflow_token');
+      const token = localStorage.getItem('dayflow_access_token');
       const fullUrl = url.includes('?') ? `${url}&token=${token || ''}` : `${url}?token=${token || ''}`;
       window.open(fullUrl, '_blank');
     } finally {
