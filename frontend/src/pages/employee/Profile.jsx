@@ -428,16 +428,16 @@ export const Profile = () => {
       {activeTab === 'salary' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-700 to-sky-600 text-white shadow-xl border border-brand-500/30">
-              <div className="text-xs font-bold uppercase text-brand-100 tracking-wider">Monthly Base Wage</div>
-              <div className="text-3xl font-black mt-2 text-white">₹ {monthlyWage.toLocaleString()}</div>
-              <div className="text-xs text-brand-100 mt-1 font-medium">Calculated base gross earnings per month</div>
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-600 via-sky-600 to-indigo-700 text-white shadow-xl border border-blue-400/30">
+              <div className="text-xs font-extrabold uppercase text-blue-100 tracking-wider">Monthly Base Wage</div>
+              <div className="text-3xl font-black mt-2 text-white drop-shadow-sm">₹ {monthlyWage.toLocaleString()}</div>
+              <div className="text-xs text-blue-100 mt-1 font-semibold">Calculated base gross earnings per month</div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-tr from-purple-700 via-slate-900 to-brand-950 text-white shadow-xl border border-purple-500/30">
-              <div className="text-xs font-bold uppercase text-purple-200 tracking-wider">Annual Base CTC</div>
-              <div className="text-3xl font-black mt-2 text-white">₹ {yearlyWage.toLocaleString()}</div>
-              <div className="text-xs text-purple-200 mt-1 font-medium">Annualized base gross compensation package</div>
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-700 via-slate-900 to-indigo-950 text-white shadow-xl border border-purple-400/30">
+              <div className="text-xs font-extrabold uppercase text-purple-200 tracking-wider">Annual Base CTC</div>
+              <div className="text-3xl font-black mt-2 text-white drop-shadow-sm">₹ {yearlyWage.toLocaleString()}</div>
+              <div className="text-xs text-purple-200 mt-1 font-semibold">Annualized base gross compensation package</div>
             </div>
           </div>
 
