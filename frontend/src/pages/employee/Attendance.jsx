@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { attendanceApi } from '../../api/attendanceApi';
+import { leaveApi } from '../../api/leaveApi';
 import { Card } from '../../components/common/Card';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { Clock, Calendar as CalendarIcon, CheckCircle2, LogIn, LogOut, AlertCircle, LayoutGrid, Table, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, CheckCircle2, LogIn, LogOut, AlertCircle, LayoutGrid, Table, Hourglass } from 'lucide-react';
 
 export const Attendance = () => {
   const [records, setRecords] = useState([]);
   const [todayAtt, setTodayAtt] = useState(null);
+  const [pendingLeaves, setPendingLeaves] = useState([]);
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -16,12 +18,14 @@ export const Attendance = () => {
   const fetchAttendance = async () => {
     setLoading(true);
     try {
-      const [histRes, todayRes] = await Promise.all([
+      const [histRes, todayRes, leavesRes] = await Promise.all([
         attendanceApi.getMyHistory(month),
-        attendanceApi.getToday()
+        attendanceApi.getToday(),
+        leaveApi.getMyLeaves()
       ]);
       setRecords(histRes);
       setTodayAtt(todayRes);
+      setPendingLeaves(leavesRes.filter(l => l.status === 'Pending'));
     } catch (err) {
       console.error('Error fetching attendance history:', err);
     } finally {
@@ -65,7 +69,6 @@ export const Attendance = () => {
   const isCheckedOut = !!todayAtt?.check_out;
 
   // Aggregate stats
-  const totalDays = records.length;
   const presentDays = records.filter(r => r.status === 'Present').length;
   const halfDays = records.filter(r => r.status === 'Half-day').length;
   const leaveDays = records.filter(r => r.status === 'Leave').length;
@@ -97,6 +100,7 @@ export const Attendance = () => {
     for (let d = 1; d <= totalDaysInMonth; d++) {
       const dateStr = `${yearStr}-${String(mIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const rec = records.find((r) => r.date === dateStr);
+      const pendingLeave = pendingLeaves.find((l) => dateStr >= l.start_date && dateStr <= l.end_date);
       const dayOfWeek = new Date(year, mIndex, d).getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
@@ -105,6 +109,7 @@ export const Attendance = () => {
         dayNum: d,
         dateStr,
         record: rec,
+        pendingLeave,
         isWeekend,
       });
     }
@@ -240,21 +245,21 @@ export const Attendance = () => {
 
       {/* Main View Mode Display */}
       {viewMode === 'calendar' ? (
-        /* Color-Coded Monthly Calendar Grid */
+        /* Compact Color-Coded Monthly Calendar Grid */
         <Card title={`Attendance Calendar — ${getMonthTitle()}`}>
           {/* Legend Bar */}
-          <div className="flex flex-wrap items-center gap-4 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold">
+          <div className="flex flex-wrap items-center gap-4 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800 text-xs font-bold">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
               <span className="text-slate-700 dark:text-slate-300">Present</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-sm"></span>
-              <span className="text-slate-700 dark:text-slate-300">Half-day</span>
+              <span className="w-3 h-3 rounded-full bg-sky-500 inline-block shadow-sm"></span>
+              <span className="text-slate-700 dark:text-slate-300">Approved Leave</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-sky-500 inline-block shadow-sm"></span>
-              <span className="text-slate-700 dark:text-slate-300">On Leave</span>
+              <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-sm"></span>
+              <span className="text-slate-700 dark:text-slate-300">Leave Pending</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-sm"></span>
@@ -269,26 +274,28 @@ export const Attendance = () => {
           {loading ? (
             <div className="py-12 text-center text-slate-500 text-sm">Loading attendance calendar...</div>
           ) : (
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1.5">
               {/* Day Headers */}
               {weekHeader.map((d, idx) => (
-                <div key={idx} className="text-center py-2 text-xs font-black text-slate-400 uppercase tracking-wider">
+                <div key={idx} className="text-center py-1 text-xs font-black text-slate-400 uppercase tracking-wider">
                   {d}
                 </div>
               ))}
 
-              {/* Day Cells */}
+              {/* Compact Day Cells */}
               {calendarDays.map((cell, i) => {
                 if (cell.isPadding) {
-                  return <div key={i} className="min-h-[85px] rounded-2xl bg-slate-50/30 dark:bg-slate-900/20 border border-transparent"></div>;
+                  return <div key={i} className="min-h-[62px] rounded-xl bg-slate-50/20 dark:bg-slate-900/10 border border-transparent"></div>;
                 }
 
                 const rec = cell.record;
+                const pending = cell.pendingLeave;
                 const status = rec?.status;
                 const workHrs = rec?.work_hours || 0;
 
                 let cardStyle = 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400';
                 let badgeBg = 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
+                let statusLabel = status;
 
                 if (status === 'Present') {
                   cardStyle = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-400/60 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200 shadow-sm';
@@ -299,6 +306,11 @@ export const Attendance = () => {
                 } else if (status === 'Leave') {
                   cardStyle = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-400/60 dark:border-sky-800 text-sky-950 dark:text-sky-200 shadow-sm';
                   badgeBg = 'bg-sky-500 text-white';
+                  statusLabel = 'On Leave';
+                } else if (pending) {
+                  cardStyle = 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-400/80 dark:border-amber-700 text-amber-900 dark:text-amber-200 shadow-sm';
+                  badgeBg = 'bg-amber-500 text-white font-black';
+                  statusLabel = 'Pending';
                 } else if (status === 'Absent') {
                   cardStyle = 'bg-rose-500/10 dark:bg-rose-950/40 border-rose-400/60 dark:border-rose-800 text-rose-950 dark:text-rose-200 shadow-sm';
                   badgeBg = 'bg-rose-500 text-white';
@@ -309,26 +321,30 @@ export const Attendance = () => {
                 return (
                   <div
                     key={i}
-                    className={`min-h-[85px] p-2 rounded-2xl border flex flex-col justify-between transition-all hover:scale-[1.02] ${cardStyle}`}
+                    className={`min-h-[62px] p-1.5 rounded-xl border flex flex-col justify-between transition-all hover:scale-[1.02] ${cardStyle}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black">{cell.dayNum}</span>
-                      {status ? (
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${badgeBg}`}>
-                          {status}
+                      {statusLabel ? (
+                        <span className={`text-[8px] font-black px-1 py-0.2 rounded-md uppercase tracking-tight ${badgeBg}`}>
+                          {statusLabel}
                         </span>
                       ) : cell.isWeekend ? (
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">OFF</span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">OFF</span>
                       ) : null}
                     </div>
 
-                    <div className="mt-2 text-right">
+                    <div className="text-right">
                       {workHrs > 0 ? (
-                        <div className="text-[11px] font-mono font-extrabold text-slate-800 dark:text-slate-100">
-                          {workHrs} hrs
+                        <div className="text-[10px] font-mono font-extrabold text-slate-800 dark:text-slate-100">
+                          {workHrs}h
+                        </div>
+                      ) : pending ? (
+                        <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-end gap-0.5">
+                          <Hourglass className="w-2.5 h-2.5 animate-pulse" /> Leave Requested
                         </div>
                       ) : rec?.check_in ? (
-                        <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                        <div className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                           Active
                         </div>
                       ) : null}
