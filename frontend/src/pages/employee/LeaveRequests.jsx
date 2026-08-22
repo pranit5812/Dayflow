@@ -3,7 +3,7 @@ import { leaveApi } from '../../api/leaveApi';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { Plus, Calendar, AlertCircle, Upload, Paperclip, Clock, CheckCircle2, Info } from 'lucide-react';
+import { Plus, Calendar, AlertCircle, Upload, Paperclip, Clock, CheckCircle2, Info, MessageSquare } from 'lucide-react';
 
 export const LeaveRequests = () => {
   const [leaves, setLeaves] = useState([]);
@@ -155,6 +155,7 @@ export const LeaveRequests = () => {
                   <th className="py-3 px-4">End Date</th>
                   <th className="py-3 px-4">Time Off Type</th>
                   <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Admin Remarks</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
@@ -176,6 +177,24 @@ export const LeaveRequests = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <StatusBadge status={l.status} />
+                    </td>
+                    <td className="py-3.5 px-4 text-xs">
+                      {l.admin_comments ? (
+                        <div className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 ${
+                          l.status === 'Approved'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                            : l.status === 'Rejected'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}>
+                          <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                          <span>{l.admin_comments}</span>
+                        </div>
+                      ) : l.status !== 'Pending' ? (
+                        <span className="text-slate-400 italic text-[11px]">No remarks added</span>
+                      ) : (
+                        <span className="text-amber-500/80 text-[11px] font-medium">Awaiting HR review</span>
+                      )}
                     </td>
                   </tr>
                 ))}
