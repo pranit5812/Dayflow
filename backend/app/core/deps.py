@@ -1,0 +1,50 @@
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from app.core.security import decode_token
+from app.db.mongodb import get_database
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "access":
+        raise credentials_exception
+    
+    user_id = payload.get("sub")
+    employee_id = payload.get("employee_id")
+    role = payload.get("role")
+    
+    if not user_id or not employee_id:
+        raise credentials_exception
+    
+    db = get_database()
+    user = await db.users.find_one({"employee_id": employee_id})
+    if not user:
+        raise credentials_exception
+    
+    if not user.get("is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated. Please contact your administrator."
+        )
+    
+    user["_id"] = str(user["_id"])
+    return user
+
+async def require_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required for this action."
+        )
+    return current_user
+
+async def require_employee(current_user: dict = Depends(get_current_user)):
+    # Both active employee and admin can access employee-level resources
+    return current_user
