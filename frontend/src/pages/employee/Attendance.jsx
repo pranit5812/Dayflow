@@ -323,36 +323,41 @@ export const Attendance = () => {
 
                 let cardStyle = 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400';
                 let badgeBg = 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
-                let statusLabel = status;
+                let statusLabel = null;
 
                 if (festive) {
                   // Festive / Public Holiday in Purple 🟣
                   cardStyle = 'bg-purple-500/15 dark:bg-purple-950/50 border-purple-400/80 dark:border-purple-800 text-purple-950 dark:text-purple-200 shadow-sm';
                   badgeBg = 'bg-purple-600 text-white font-extrabold';
                   statusLabel = 'Festive';
+                } else if (pending) {
+                  // Pending Leave Request in Orange 🟠
+                  cardStyle = 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-400/80 dark:border-amber-700 text-amber-900 dark:text-amber-200 shadow-sm';
+                  badgeBg = 'bg-amber-500 text-white font-black';
+                  statusLabel = 'Pending';
+                } else if (cell.isFuture) {
+                  // Upcoming Normal Days: Completely Blank (no 'On Leave' or 'Absent')
+                  cardStyle = 'bg-slate-50/40 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/40 text-slate-400';
+                  statusLabel = null;
                 } else if (status === 'Present') {
                   cardStyle = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-400/60 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200 shadow-sm';
                   badgeBg = 'bg-emerald-500 text-white';
+                  statusLabel = 'Present';
                 } else if (status === 'Half-day') {
                   cardStyle = 'bg-amber-500/10 dark:bg-amber-950/40 border-amber-400/60 dark:border-amber-800 text-amber-950 dark:text-amber-200 shadow-sm';
                   badgeBg = 'bg-amber-500 text-white';
+                  statusLabel = 'Half-day';
                 } else if (status === 'Leave') {
                   cardStyle = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-400/60 dark:border-sky-800 text-sky-950 dark:text-sky-200 shadow-sm';
                   badgeBg = 'bg-sky-500 text-white';
                   statusLabel = 'On Leave';
-                } else if (pending) {
-                  cardStyle = 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-400/80 dark:border-amber-700 text-amber-900 dark:text-amber-200 shadow-sm';
-                  badgeBg = 'bg-amber-500 text-white font-black';
-                  statusLabel = 'Pending';
-                } else if (status === 'Absent' && !cell.isFuture) {
+                } else if (status === 'Absent') {
                   cardStyle = 'bg-rose-500/10 dark:bg-rose-950/40 border-rose-400/60 dark:border-rose-800 text-rose-950 dark:text-rose-200 shadow-sm';
                   badgeBg = 'bg-rose-500 text-white';
-                } else if (cell.isFuture) {
-                  // Upcoming Days: Muted standard day cell (NOT marked absent or leave)
-                  cardStyle = 'bg-slate-50/40 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-800/50 text-slate-400';
-                  statusLabel = null;
+                  statusLabel = 'Absent';
                 } else if (cell.isWeekend) {
                   cardStyle = 'bg-slate-100/50 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/40 text-slate-400';
+                  statusLabel = null;
                 }
 
                 return (
