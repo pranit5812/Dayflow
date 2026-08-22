@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../api/authApi';
-import { Lock, Mail, User, BadgeCheck, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2, Clock, DollarSign, Calendar, FileSpreadsheet } from 'lucide-react';
+import { Lock, Mail, User, BadgeCheck, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2, Clock, DollarSign, Calendar, FileSpreadsheet, Shield } from 'lucide-react';
 
 const heroSlides = [
   {
@@ -249,18 +249,40 @@ export const SignUp = () => {
                 </div>
               </div>
 
+              {/* Interactive Visual Role Cards (Employee vs HR Admin) */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Portal Role
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Select Portal Role
                 </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-sm font-semibold"
-                >
-                  <option value="employee">Employee Profile</option>
-                  <option value="admin">HR Admin Profile</option>
-                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole('employee')}
+                    className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                      role === 'employee'
+                        ? 'bg-brand-500/20 border-brand-500 text-white shadow-lg shadow-brand-500/20 ring-2 ring-brand-500 font-extrabold'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <User className={`w-5 h-5 mb-1.5 ${role === 'employee' ? 'text-brand-400' : 'text-slate-400'}`} />
+                    <span className="text-xs font-extrabold">Employee</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5">Staff Portal</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRole('admin')}
+                    className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                      role === 'admin'
+                        ? 'bg-purple-500/20 border-purple-500 text-white shadow-lg shadow-purple-500/20 ring-2 ring-purple-500 font-extrabold'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Shield className={`w-5 h-5 mb-1.5 ${role === 'admin' ? 'text-purple-400' : 'text-slate-400'}`} />
+                    <span className="text-xs font-extrabold">HR Admin</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5">Management Portal</span>
+                  </button>
+                </div>
               </div>
 
               <button
