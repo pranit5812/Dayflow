@@ -3,7 +3,7 @@ import { leaveApi } from '../../api/leaveApi';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { Plus, Calendar, AlertCircle, Upload, Paperclip, Clock, CheckCircle2, Info, MessageSquare } from 'lucide-react';
+import { Plus, Calendar, AlertCircle, Upload, Paperclip, Clock, CheckCircle2, Info, MessageSquare, Sparkles } from 'lucide-react';
 
 export const LeaveRequests = () => {
   const [leaves, setLeaves] = useState([]);
@@ -137,6 +137,34 @@ export const LeaveRequests = () => {
           </div>
           <p className="text-xs text-slate-400 mt-3">Affects monthly payroll calculation</p>
         </Card>
+      </div>
+
+      {/* Festive & Public Holidays List Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-slate-900/10 border border-purple-500/30 dark:bg-purple-950/20 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-purple-500 text-white shadow-md shadow-purple-500/30">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-extrabold text-purple-900 dark:text-purple-200">Company Festive Holidays (8 Days Allotted)</div>
+            <div className="text-xs text-purple-700 dark:text-purple-300 mt-0.5">Paid public holidays automatically applied without deducting leave balance</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+          <span className="px-3 py-1 rounded-xl bg-purple-100 dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold whitespace-nowrap">
+            🎉 Jan 26 (Republic Day)
+          </span>
+          <span className="px-3 py-1 rounded-xl bg-purple-100 dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold whitespace-nowrap">
+            🎉 Mar 25 (Holi)
+          </span>
+          <span className="px-3 py-1 rounded-xl bg-purple-100 dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold whitespace-nowrap">
+            🎉 Aug 15 (Independence)
+          </span>
+          <span className="px-3 py-1 rounded-xl bg-purple-100 dark:bg-purple-900/60 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold whitespace-nowrap">
+            🎉 Oct 20 (Diwali)
+          </span>
+        </div>
       </div>
 
       {/* Leave Requests Table matching Excalidraw columns */}

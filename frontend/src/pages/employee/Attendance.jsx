@@ -3,7 +3,18 @@ import { attendanceApi } from '../../api/attendanceApi';
 import { leaveApi } from '../../api/leaveApi';
 import { Card } from '../../components/common/Card';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { Clock, Calendar as CalendarIcon, CheckCircle2, LogIn, LogOut, AlertCircle, LayoutGrid, Table, Hourglass } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, CheckCircle2, LogIn, LogOut, AlertCircle, LayoutGrid, Table, Hourglass, Sparkles, PartyPopper } from 'lucide-react';
+
+const festiveHolidays = [
+  { date: '2026-01-01', name: "New Year's Day" },
+  { date: '2026-01-26', name: "Republic Day" },
+  { date: '2026-03-25', name: "Holi Festival" },
+  { date: '2026-08-15', name: "Independence Day" },
+  { date: '2026-10-20', name: "Diwali Festival" },
+  { date: '2026-10-21', name: "Deepavali Pujan" },
+  { date: '2026-11-01', name: "Statehood Day" },
+  { date: '2026-12-25', name: "Christmas Day" }
+];
 
 export const Attendance = () => {
   const [records, setRecords] = useState([]);
@@ -14,6 +25,8 @@ export const Attendance = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'table'
+
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const fetchAttendance = async () => {
     setLoading(true);
@@ -68,11 +81,12 @@ export const Attendance = () => {
   const isCheckedIn = !!todayAtt?.check_in;
   const isCheckedOut = !!todayAtt?.check_out;
 
-  // Aggregate stats
+  // Aggregate stats up to today only
   const presentDays = records.filter(r => r.status === 'Present').length;
   const halfDays = records.filter(r => r.status === 'Half-day').length;
   const leaveDays = records.filter(r => r.status === 'Leave').length;
-  const absentDays = records.filter(r => r.status === 'Absent').length;
+  const absentDays = records.filter(r => r.status === 'Absent' && r.date <= todayStr).length;
+  const festiveDays = festiveHolidays.filter(f => f.date.startsWith(month)).length;
   const totalHours = records.reduce((sum, r) => sum + (r.work_hours || 0), 0);
 
   const getDayName = (dateStr) => {
@@ -101,8 +115,10 @@ export const Attendance = () => {
       const dateStr = `${yearStr}-${String(mIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const rec = records.find((r) => r.date === dateStr);
       const pendingLeave = pendingLeaves.find((l) => dateStr >= l.start_date && dateStr <= l.end_date);
+      const festive = festiveHolidays.find((f) => f.date === dateStr);
       const dayOfWeek = new Date(year, mIndex, d).getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isFuture = dateStr > todayStr;
 
       days.push({
         isPadding: false,
@@ -110,7 +126,9 @@ export const Attendance = () => {
         dateStr,
         record: rec,
         pendingLeave,
+        festive,
         isWeekend,
+        isFuture
       });
     }
 
@@ -142,11 +160,6 @@ export const Attendance = () => {
           <div className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center justify-between">
             <span>Today's Status</span>
             {todayAtt ? <StatusBadge status={todayAtt.status} /> : <span className="text-xs text-white/90">Not logged today</span>}
-          </div>
-
-          <div className="text-[11px] font-mono font-bold text-white/90 mb-2 flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg">
-            <Clock className="w-3 h-3 text-emerald-400 animate-pulse" />
-            <span>Time: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
 
           {msg && (
@@ -183,27 +196,31 @@ export const Attendance = () => {
         </div>
       </div>
 
-      {/* Aggregate Stats Cards with Color Highlights */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="!p-4 text-center border-l-4 border-l-emerald-500">
-          <div className="text-xs font-semibold text-slate-500">Present (🟢)</div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{presentDays}</div>
+      {/* Aggregate Stats Cards with Color Highlights including Festive */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <Card className="!p-3.5 text-center border-l-4 border-l-emerald-500">
+          <div className="text-[11px] font-semibold text-slate-500">Present (🟢)</div>
+          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{presentDays}</div>
         </Card>
-        <Card className="!p-4 text-center border-l-4 border-l-amber-500">
-          <div className="text-xs font-semibold text-slate-500">Half-Day (🟡)</div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{halfDays}</div>
+        <Card className="!p-3.5 text-center border-l-4 border-l-amber-500">
+          <div className="text-[11px] font-semibold text-slate-500">Half-Day (🟡)</div>
+          <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{halfDays}</div>
         </Card>
-        <Card className="!p-4 text-center border-l-4 border-l-sky-500">
-          <div className="text-xs font-semibold text-slate-500">On Leave (🔵)</div>
-          <div className="text-2xl font-black text-sky-600 dark:text-sky-400 mt-1">{leaveDays}</div>
+        <Card className="!p-3.5 text-center border-l-4 border-l-sky-500">
+          <div className="text-[11px] font-semibold text-slate-500">On Leave (🔵)</div>
+          <div className="text-xl font-black text-sky-600 dark:text-sky-400 mt-0.5">{leaveDays}</div>
         </Card>
-        <Card className="!p-4 text-center border-l-4 border-l-rose-500">
-          <div className="text-xs font-semibold text-slate-500">Absent (🔴)</div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{absentDays}</div>
+        <Card className="!p-3.5 text-center border-l-4 border-l-purple-500">
+          <div className="text-[11px] font-semibold text-slate-500">Festive (🟣)</div>
+          <div className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5">{festiveDays}</div>
         </Card>
-        <Card className="!p-4 text-center col-span-2 md:col-span-1 border-l-4 border-l-brand-500">
-          <div className="text-xs font-semibold text-slate-500">Total Hours</div>
-          <div className="text-2xl font-black text-brand-600 dark:text-brand-400 mt-1">{totalHours.toFixed(1)} hrs</div>
+        <Card className="!p-3.5 text-center border-l-4 border-l-rose-500">
+          <div className="text-[11px] font-semibold text-slate-500">Absent (🔴)</div>
+          <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5">{absentDays}</div>
+        </Card>
+        <Card className="!p-3.5 text-center col-span-2 md:col-span-1 border-l-4 border-l-brand-500">
+          <div className="text-[11px] font-semibold text-slate-500">Total Hours</div>
+          <div className="text-xl font-black text-brand-600 dark:text-brand-400 mt-0.5">{totalHours.toFixed(1)} hrs</div>
         </Card>
       </div>
 
@@ -253,10 +270,14 @@ export const Attendance = () => {
         /* Compact Color-Coded Monthly Calendar Grid */
         <Card title={`Attendance Calendar — ${getMonthTitle()}`}>
           {/* Legend Bar */}
-          <div className="flex flex-wrap items-center gap-4 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800 text-xs font-bold">
+          <div className="flex flex-wrap items-center gap-3 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800 text-xs font-bold">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
               <span className="text-slate-700 dark:text-slate-300">Present</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-purple-500 inline-block shadow-sm"></span>
+              <span className="text-purple-700 dark:text-purple-300">Festive Holiday (🟣)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-sky-500 inline-block shadow-sm"></span>
@@ -268,11 +289,11 @@ export const Attendance = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-sm"></span>
-              <span className="text-slate-700 dark:text-slate-300">Absent</span>
+              <span className="text-slate-700 dark:text-slate-300">Absent (Past Days)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span>
-              <span className="text-slate-400">Weekend / Off</span>
+              <span className="text-slate-400">Weekend / Upcoming</span>
             </div>
           </div>
 
@@ -290,19 +311,26 @@ export const Attendance = () => {
               {/* Compact Day Cells */}
               {calendarDays.map((cell, i) => {
                 if (cell.isPadding) {
-                  return <div key={i} className="min-h-[62px] rounded-xl bg-slate-50/20 dark:bg-slate-900/10 border border-transparent"></div>;
+                  return <div key={i} className="min-h-[58px] rounded-xl bg-slate-50/20 dark:bg-slate-900/10 border border-transparent"></div>;
                 }
 
                 const rec = cell.record;
                 const pending = cell.pendingLeave;
+                const festive = cell.festive;
                 const status = rec?.status;
                 const workHrs = rec?.work_hours || 0;
+                const isToday = cell.dateStr === todayStr;
 
                 let cardStyle = 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400';
                 let badgeBg = 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
                 let statusLabel = status;
 
-                if (status === 'Present') {
+                if (festive) {
+                  // Festive / Public Holiday in Purple 🟣
+                  cardStyle = 'bg-purple-500/15 dark:bg-purple-950/50 border-purple-400/80 dark:border-purple-800 text-purple-950 dark:text-purple-200 shadow-sm';
+                  badgeBg = 'bg-purple-600 text-white font-extrabold';
+                  statusLabel = 'Festive';
+                } else if (status === 'Present') {
                   cardStyle = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-400/60 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200 shadow-sm';
                   badgeBg = 'bg-emerald-500 text-white';
                 } else if (status === 'Half-day') {
@@ -316,9 +344,13 @@ export const Attendance = () => {
                   cardStyle = 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-400/80 dark:border-amber-700 text-amber-900 dark:text-amber-200 shadow-sm';
                   badgeBg = 'bg-amber-500 text-white font-black';
                   statusLabel = 'Pending';
-                } else if (status === 'Absent') {
+                } else if (status === 'Absent' && !cell.isFuture) {
                   cardStyle = 'bg-rose-500/10 dark:bg-rose-950/40 border-rose-400/60 dark:border-rose-800 text-rose-950 dark:text-rose-200 shadow-sm';
                   badgeBg = 'bg-rose-500 text-white';
+                } else if (cell.isFuture) {
+                  // Upcoming Days: Muted standard day cell (NOT marked absent or leave)
+                  cardStyle = 'bg-slate-50/40 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-800/50 text-slate-400';
+                  statusLabel = null;
                 } else if (cell.isWeekend) {
                   cardStyle = 'bg-slate-100/50 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/40 text-slate-400';
                 }
@@ -326,27 +358,35 @@ export const Attendance = () => {
                 return (
                   <div
                     key={i}
-                    className={`min-h-[62px] p-1.5 rounded-xl border flex flex-col justify-between transition-all hover:scale-[1.02] ${cardStyle}`}
+                    className={`min-h-[58px] p-1.5 rounded-xl border flex flex-col justify-between transition-all hover:scale-[1.02] ${cardStyle} ${
+                      isToday ? 'ring-2 ring-brand-500 shadow-md font-bold' : ''
+                    }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black">{cell.dayNum}</span>
+                      <span className={`text-xs font-black ${isToday ? 'text-brand-600 dark:text-brand-400' : ''}`}>{cell.dayNum}</span>
                       {statusLabel ? (
                         <span className={`text-[8px] font-black px-1 py-0.2 rounded-md uppercase tracking-tight ${badgeBg}`}>
                           {statusLabel}
                         </span>
                       ) : cell.isWeekend ? (
                         <span className="text-[8px] font-bold text-slate-400 uppercase">OFF</span>
+                      ) : isToday ? (
+                        <span className="text-[8px] font-bold text-brand-500 uppercase">TODAY</span>
                       ) : null}
                     </div>
 
                     <div className="text-right">
-                      {workHrs > 0 ? (
+                      {festive ? (
+                        <div className="text-[9px] font-bold text-purple-600 dark:text-purple-400 truncate">
+                          🎉 {festive.name}
+                        </div>
+                      ) : workHrs > 0 ? (
                         <div className="text-[10px] font-mono font-extrabold text-slate-800 dark:text-slate-100">
                           {workHrs}h
                         </div>
                       ) : pending ? (
                         <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-end gap-0.5">
-                          <Hourglass className="w-2.5 h-2.5 animate-pulse" /> Leave Requested
+                          <Hourglass className="w-2.5 h-2.5 animate-pulse" /> Pending
                         </div>
                       ) : rec?.check_in ? (
                         <div className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
