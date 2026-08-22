@@ -119,7 +119,27 @@ export const Payroll = () => {
           <p className="text-slate-400 text-sm mt-1">Track monthly paystubs, take-home net pay, and salary trajectory</p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scheduled Salary Credit Date</div>
+              <div className="text-base font-extrabold text-emerald-300">
+                {(() => {
+                  const desig = (userProfile?.job_details?.designation || '').toLowerCase();
+                  const role = (userProfile?.role || '').toLowerCase();
+                  if (desig.includes('hod') || desig.includes('head') || role.includes('admin') || desig.includes('director') || desig.includes('executive')) return '1st of Every Month (HOD / Exec Payday)';
+                  if (desig.includes('manager') || desig.includes('lead') || role.includes('manager')) return '5th of Every Month (Manager / Lead Payday)';
+                  if (desig.includes('intern') || desig.includes('trainee')) return '15th of Every Month (Intern Payday)';
+                  return '10th of Every Month (Standard Staff Payday)';
+                })()}
+              </div>
+              <div className="text-[11px] text-slate-400">Fixed disbursement day of month</div>
+            </div>
+          </div>
+
           <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 text-right">
             <div className="text-xs font-bold text-slate-400 uppercase">Current Base Wage</div>
             <div className="text-2xl font-black text-emerald-400 mt-0.5">₹ {baseNet.toLocaleString()}</div>
@@ -240,6 +260,7 @@ export const Payroll = () => {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="py-3 px-4">Pay Period</th>
+                  <th className="py-3 px-4">Payday Date</th>
                   <th className="py-3 px-4">Attendance Snapshot</th>
                   <th className="py-3 px-4">Gross Salary</th>
                   <th className="py-3 px-4">Deductions</th>
@@ -255,6 +276,11 @@ export const Payroll = () => {
                     <tr key={slip.id || slip._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-3.5 px-4 font-extrabold text-slate-800 dark:text-slate-200">
                         {slip.month}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-semibold">
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono">
+                          🗓️ {slip.scheduled_disbursement_date || slip.scheduled_payday || '10th of month'}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-400">
                         <div>Present: <strong>{att.present ?? 0}</strong> days</div>

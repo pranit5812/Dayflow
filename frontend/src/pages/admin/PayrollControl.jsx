@@ -3,7 +3,7 @@ import { payrollApi } from '../../api/payrollApi';
 import { reportsApi } from '../../api/dashboardApi';
 import { Card } from '../../components/common/Card';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { DollarSign, Play, CheckCircle, Download, AlertCircle, Info, Lock } from 'lucide-react';
+import { DollarSign, Play, CheckCircle, Download, AlertCircle, Info, Lock, Calendar } from 'lucide-react';
 
 export const PayrollControl = () => {
   const [slips, setSlips] = useState([]);
@@ -115,6 +115,37 @@ export const PayrollControl = () => {
         )}
       </Card>
 
+      {/* Constant Salary Disbursement Schedule Matrix */}
+      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-extrabold text-white">Constant Role Payday Disbursement Schedule</div>
+            <div className="text-xs text-slate-400">Fixed monthly paydays automatically assigned based on employee designation & role tier</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
+            <span className="text-slate-400 font-medium block text-[10px] uppercase">HOD / Admin</span>
+            <strong className="text-emerald-400 font-mono text-xs">1st of Month</strong>
+          </div>
+          <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
+            <span className="text-slate-400 font-medium block text-[10px] uppercase">Managers / Leads</span>
+            <strong className="text-emerald-400 font-mono text-xs">5th of Month</strong>
+          </div>
+          <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
+            <span className="text-slate-400 font-medium block text-[10px] uppercase">Software Staff</span>
+            <strong className="text-emerald-400 font-mono text-xs">10th of Month</strong>
+          </div>
+          <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
+            <span className="text-slate-400 font-medium block text-[10px] uppercase">Interns / Trainees</span>
+            <strong className="text-emerald-400 font-mono text-xs">15th of Month</strong>
+          </div>
+        </div>
+      </div>
+
       {/* Generated Payroll Slips Table */}
       <Card title={`Generated Slips for ${month} (${slips.length})`}>
         {loading ? (
@@ -129,6 +160,7 @@ export const PayrollControl = () => {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="py-3 px-4">Employee</th>
+                  <th className="py-3 px-4">Scheduled Payday</th>
                   <th className="py-3 px-4">Attendance Breakdown</th>
                   <th className="py-3 px-4">Gross Salary</th>
                   <th className="py-3 px-4">Unpaid Deduction</th>
@@ -148,6 +180,11 @@ export const PayrollControl = () => {
                       <td className="py-3.5 px-4 font-extrabold text-slate-800 dark:text-slate-200">
                         <div>{slip.employee_name || slip.employee_id}</div>
                         <div className="text-xs text-slate-400 font-mono font-normal">{slip.employee_id}</div>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-semibold">
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono">
+                          🗓️ {slip.scheduled_disbursement_date || slip.scheduled_payday || '10th of month'}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-400">
                         <div>Present: <strong>{att.present ?? 0}</strong> | Half: {att.half_day ?? 0}</div>

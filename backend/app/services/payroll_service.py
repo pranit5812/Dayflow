@@ -96,12 +96,39 @@ async def generate_payroll_for_employee(employee_id: str, month: str, generated_
     
     emp_name = employee.get("personal_details", {}).get("full_name", employee_id)
     dept = employee.get("job_details", {}).get("department", "Engineering")
+    desig = employee.get("job_details", {}).get("designation", "")
+    emp_role = employee.get("role", "employee")
+
+    # Role & Designation Constant Payday Schedule Matrix
+    role_l = emp_role.lower()
+    desig_l = desig.lower()
+    if any(k in desig_l or k in role_l for k in ["hod", "admin", "director", "head", "executive"]):
+        payday_label = "1st of month"
+        day_num = 1
+    elif any(k in desig_l or k in role_l for k in ["manager", "lead", "supervisor"]):
+        payday_label = "5th of month"
+        day_num = 5
+    elif any(k in desig_l for k in ["intern", "trainee", "apprentice"]):
+        payday_label = "15th of month"
+        day_num = 15
+    else:
+        payday_label = "10th of month"
+        day_num = 10
+
+    try:
+        y_str, m_str = month.split("-")
+        from datetime import date
+        disb_date = date(int(y_str), int(m_str), day_num).strftime("%d %b %Y")
+    except Exception:
+        disb_date = f"{day_num}th of {month}"
     
     slip_doc = {
         "employee_id": employee_id,
         "employee_name": emp_name,
         "department": dept,
         "month": month,
+        "scheduled_payday": payday_label,
+        "scheduled_disbursement_date": disb_date,
         "attendance_summary": {
             "present": present_cnt,
             "half_day": half_day_cnt,

@@ -43,6 +43,8 @@ class PayrollSlipOut(BaseModel):
     gross_salary: float
     deductions: float
     net_salary: float
+    scheduled_payday: Optional[str] = "10th of month"
+    scheduled_disbursement_date: Optional[str] = ""
     generated_by: str
     generated_at: datetime
     status: PayrollStatus
