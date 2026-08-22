@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
     USE_MOCK_DB_IF_DISCONNECTED: bool = True
 
+    # SMTP Mail Server Configuration
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply.dayflow@gmail.com"
+    SMTP_FROM_NAME: str = "Dayflow HRMS System"
+    SMTP_TLS: bool = True
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

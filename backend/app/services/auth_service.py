@@ -157,6 +157,8 @@ async def refresh_access_token(refresh_token: str) -> dict:
     )
     return {"access_token": new_access_token, "token_type": "bearer"}
 
+from app.services.email_service import send_otp_email
+
 def from_config():
     from app.core.config import settings
     return settings.JWT_REFRESH_SECRET_KEY
@@ -183,11 +185,16 @@ async def request_forgot_password(login_id: str) -> dict:
         {"$set": {"reset_otp": otp_code, "reset_otp_at": datetime.now(timezone.utc)}}
     )
 
+    # Dispatch via Real SMTP Mail Engine (or log fallback)
+    target_email = user.get("email", clean_id)
+    email_sent = await send_otp_email(target_email, user["employee_id"], otp_code)
+
     await log_activity(user["employee_id"], "forgot_password_requested", f"Password reset requested for {user['employee_id']}")
     return {
-        "message": f"OTP verification code generated for {user.get('email')}.",
+        "message": f"OTP verification code sent to {target_email} via SMTP!" if email_sent else f"OTP verification code generated for {target_email}.",
         "otp_code": otp_code,
-        "email": user.get("email")
+        "email": target_email,
+        "email_sent": email_sent
     }
 
 async def reset_user_password(login_id: str, otp_code: str, new_password: str) -> dict:
