@@ -3,7 +3,7 @@ import { attendanceApi } from '../../api/attendanceApi';
 import { leaveApi } from '../../api/leaveApi';
 import { Card } from '../../components/common/Card';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { Clock, Calendar as CalendarIcon, CheckCircle2, LogIn, LogOut, AlertCircle, LayoutGrid, Table, Hourglass, Sparkles, PartyPopper } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, CheckCircle2, LogIn, LogOut, AlertCircle, LayoutGrid, Table, Hourglass, Sparkles, PartyPopper, BarChart2, TrendingUp, CalendarDays } from 'lucide-react';
 
 const festiveHolidays = [
   { date: '2026-01-01', name: "New Year's Day" },
@@ -24,7 +24,7 @@ export const Attendance = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [msg, setMsg] = useState('');
-  const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'table'
+  const [viewMode, setViewMode] = useState('weekly'); // 'weekly' | 'calendar' | 'table'
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -95,6 +95,47 @@ export const Attendance = () => {
     return d.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
+  // Current Week Calculation (Monday to Sunday)
+  const getCurrentWeekDays = () => {
+    const today = new Date();
+    const currentDayOfWeek = today.getDay(); // 0 = Sun, 1 = Mon, ...
+    const distanceToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + distanceToMonday);
+
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dStr = d.toISOString().slice(0, 10);
+      const rec = records.find(r => r.date === dStr);
+      const pendingLeave = pendingLeaves.find(l => dStr >= l.start_date && dStr <= l.end_date);
+      const festive = festiveHolidays.find(f => f.date === dStr);
+      const isWeekend = i >= 5; // Sat, Sun
+      const isFuture = dStr > todayStr;
+      const isToday = dStr === todayStr;
+
+      weekDays.push({
+        dateStr: dStr,
+        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        fullDayName: d.toLocaleDateString('en-US', { weekday: 'long' }),
+        dayNum: d.getDate(),
+        record: rec,
+        pendingLeave,
+        festive,
+        isWeekend,
+        isFuture,
+        isToday
+      });
+    }
+    return weekDays;
+  };
+
+  const weekDays = getCurrentWeekDays();
+  const weeklyTotalHours = weekDays.reduce((sum, w) => sum + (w.record?.work_hours || 0), 0);
+  const weeklyAvgHours = (weeklyTotalHours / 5).toFixed(1);
+
   // Calendar Grid Calculator
   const getCalendarDays = () => {
     const [yearStr, monthStr] = month.split('-');
@@ -105,12 +146,10 @@ export const Attendance = () => {
     const totalDaysInMonth = new Date(year, mIndex + 1, 0).getDate();
 
     const days = [];
-    // Padding days before 1st
     for (let i = 0; i < firstDayIndex; i++) {
       days.push({ isPadding: true, dayNum: '' });
     }
 
-    // Actual days of month
     for (let d = 1; d <= totalDaysInMonth; d++) {
       const dateStr = `${yearStr}-${String(mIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const rec = records.find((r) => r.date === dateStr);
@@ -145,20 +184,20 @@ export const Attendance = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Top Banner with Today's Interactive Check In / Check Out Action */}
       <div className="rounded-3xl p-6 lg:p-8 bg-gradient-to-r from-brand-600 via-brand-700 to-sky-600 text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-xs font-bold mb-2 text-white">
-            <Clock className="w-3.5 h-3.5" /> Daily Attendance Logger
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/20 text-xs font-extrabold mb-2 text-white">
+            <Clock className="w-3.5 h-3.5" /> Daily & Weekly Attendance Tracker
           </div>
-          <h1 className="text-2xl lg:text-3xl font-black text-white">Employee Attendance</h1>
-          <p className="text-brand-100 text-sm mt-1 font-medium">Check in daily and monitor work hours</p>
+          <h1 className="text-2xl lg:text-3xl font-black text-white">Employee Attendance Hub</h1>
+          <p className="text-brand-100 text-sm mt-1 font-medium">Log daily shifts, monitor weekly work hours, and view attendance trends</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/30 text-white min-w-[280px] shadow-lg">
           <div className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center justify-between">
-            <span>Today's Status</span>
+            <span>Today's Daily Status</span>
             {todayAtt ? <StatusBadge status={todayAtt.status} /> : <span className="text-xs text-white/90">Not logged today</span>}
           </div>
 
@@ -196,7 +235,7 @@ export const Attendance = () => {
         </div>
       </div>
 
-      {/* Aggregate Stats Cards with Color Highlights including Festive */}
+      {/* Aggregate Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <Card className="!p-3.5 text-center border-l-4 border-l-emerald-500">
           <div className="text-[11px] font-semibold text-slate-500">Present (🟢)</div>
@@ -224,38 +263,43 @@ export const Attendance = () => {
         </Card>
       </div>
 
-      {/* Controls Bar: Month Selector & View Mode Switcher */}
+      {/* Controls Bar: View Mode Switcher (Weekly vs Calendar vs Table) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <CalendarIcon className="w-5 h-5 text-brand-500" />
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">{getMonthTitle()}</h3>
+        <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
+          <button
+            onClick={() => setViewMode('weekly')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+              viewMode === 'weekly'
+                ? 'bg-brand-500 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5" /> Weekly View (Mon–Sun)
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+              viewMode === 'calendar'
+                ? 'bg-brand-500 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" /> Monthly Calendar
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+              viewMode === 'table'
+                ? 'bg-brand-500 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Table className="w-3.5 h-3.5" /> Log Table
+          </button>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          {/* View Toggle */}
-          <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center gap-1 border border-slate-200/80 dark:border-slate-700">
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                viewMode === 'calendar'
-                  ? 'bg-brand-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" /> Calendar View
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                viewMode === 'table'
-                  ? 'bg-brand-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Table className="w-3.5 h-3.5" /> Log Table
-            </button>
-          </div>
-
+        <div className="flex items-center gap-3">
+          <CalendarIcon className="w-4 h-4 text-brand-500" />
           <input
             type="month"
             value={month}
@@ -265,11 +309,82 @@ export const Attendance = () => {
         </div>
       </div>
 
-      {/* Main View Mode Display */}
-      {viewMode === 'calendar' ? (
-        /* Compact Color-Coded Monthly Calendar Grid */
+      {/* Main View Display */}
+      {viewMode === 'weekly' ? (
+        /* Dedicated Weekly Attendance View (Mon-Sun) */
+        <div className="space-y-4">
+          <Card title="Current Week Attendance Breakdown (Monday to Sunday)" subtitle={`Logged: ${weeklyTotalHours.toFixed(1)} hrs total • Avg ${weeklyAvgHours} hrs/day`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mt-2">
+              {weekDays.map((item, idx) => {
+                const rec = item.record;
+                const workHrs = rec?.work_hours || 0;
+                const progressPct = Math.min(100, Math.round((workHrs / 8.0) * 100));
+
+                let statusBadge = <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">Not Logged</span>;
+                let borderStyle = 'border-slate-200 dark:border-slate-800';
+
+                if (item.festive) {
+                  statusBadge = <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-500 text-white">Festive 🟣</span>;
+                  borderStyle = 'border-purple-500/50 bg-purple-500/5';
+                } else if (rec?.status === 'Present') {
+                  statusBadge = <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500 text-white">Present 🟢</span>;
+                  borderStyle = 'border-emerald-500/50 bg-emerald-500/5';
+                } else if (rec?.status === 'Half-day') {
+                  statusBadge = <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-500 text-white">Half-Day 🟡</span>;
+                  borderStyle = 'border-amber-500/50 bg-amber-500/5';
+                } else if (rec?.status === 'Leave') {
+                  statusBadge = <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-sky-500 text-white">Leave 🔵</span>;
+                  borderStyle = 'border-sky-500/50 bg-sky-500/5';
+                } else if (rec?.status === 'Absent' && !item.isFuture) {
+                  statusBadge = <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-rose-500 text-white">Absent 🔴</span>;
+                  borderStyle = 'border-rose-500/50 bg-rose-500/5';
+                } else if (item.isWeekend) {
+                  statusBadge = <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500">Weekend ⚪</span>;
+                }
+
+                return (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3 transition-all ${borderStyle} ${
+                      item.isToday ? 'ring-2 ring-brand-500 shadow-lg' : ''
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-black text-slate-800 dark:text-slate-200">{item.dayName}</div>
+                        <div className="text-[10px] font-bold text-slate-400">{item.dateStr.slice(5)}</div>
+                      </div>
+                      {item.isToday && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-brand-500 text-white uppercase">Today</span>
+                      )}
+                    </div>
+
+                    <div>{statusBadge}</div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">Shift</span>
+                        <span className="font-extrabold text-slate-800 dark:text-slate-200">{workHrs > 0 ? `${workHrs} hrs` : '--'}</span>
+                      </div>
+
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all ${
+                            workHrs >= 7.0 ? 'bg-emerald-500' : workHrs > 0 ? 'bg-amber-500' : 'bg-slate-400'
+                          }`}
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      ) : viewMode === 'calendar' ? (
+        /* Monthly Calendar Grid */
         <Card title={`Attendance Calendar — ${getMonthTitle()}`}>
-          {/* Legend Bar */}
           <div className="flex flex-wrap items-center gap-3 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800 text-xs font-bold">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
@@ -291,24 +406,18 @@ export const Attendance = () => {
               <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-sm"></span>
               <span className="text-slate-700 dark:text-slate-300">Absent (Past Days)</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span>
-              <span className="text-slate-400">Weekend / Upcoming</span>
-            </div>
           </div>
 
           {loading ? (
             <div className="py-12 text-center text-slate-500 text-sm">Loading attendance calendar...</div>
           ) : (
             <div className="grid grid-cols-7 gap-1.5">
-              {/* Day Headers */}
               {weekHeader.map((d, idx) => (
                 <div key={idx} className="text-center py-1 text-xs font-black text-slate-400 uppercase tracking-wider">
                   {d}
                 </div>
               ))}
 
-              {/* Compact Day Cells */}
               {calendarDays.map((cell, i) => {
                 if (cell.isPadding) {
                   return <div key={i} className="min-h-[58px] rounded-xl bg-slate-50/20 dark:bg-slate-900/10 border border-transparent"></div>;
@@ -326,17 +435,14 @@ export const Attendance = () => {
                 let statusLabel = null;
 
                 if (festive) {
-                  // Festive / Public Holiday in Purple 🟣
                   cardStyle = 'bg-purple-500/15 dark:bg-purple-950/50 border-purple-400/80 dark:border-purple-800 text-purple-950 dark:text-purple-200 shadow-sm';
                   badgeBg = 'bg-purple-600 text-white font-extrabold';
                   statusLabel = 'Festive';
                 } else if (pending) {
-                  // Pending Leave Request in Orange 🟠
                   cardStyle = 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-400/80 dark:border-amber-700 text-amber-900 dark:text-amber-200 shadow-sm';
                   badgeBg = 'bg-amber-500 text-white font-black';
                   statusLabel = 'Pending';
                 } else if (cell.isFuture) {
-                  // Upcoming Normal Days: Completely Blank (no 'On Leave' or 'Absent')
                   cardStyle = 'bg-slate-50/40 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/40 text-slate-400';
                   statusLabel = null;
                 } else if (status === 'Present') {
