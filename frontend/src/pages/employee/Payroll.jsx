@@ -126,17 +126,20 @@ export const Payroll = () => {
             </div>
             <div>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scheduled Salary Credit Date</div>
-              <div className="text-base font-extrabold text-emerald-300">
+              <div className="text-base font-extrabold text-emerald-300 font-mono">
                 {(() => {
                   const desig = (userProfile?.job_details?.designation || '').toLowerCase();
                   const role = (userProfile?.role || '').toLowerCase();
-                  if (desig.includes('hod') || desig.includes('head') || role.includes('admin') || desig.includes('director') || desig.includes('executive')) return '1st of Every Month (HOD / Exec Payday)';
-                  if (desig.includes('manager') || desig.includes('lead') || role.includes('manager')) return '5th of Every Month (Manager / Lead Payday)';
-                  if (desig.includes('intern') || desig.includes('trainee')) return '15th of Every Month (Intern Payday)';
-                  return '10th of Every Month (Standard Staff Payday)';
+                  const now = new Date();
+                  const mm = String(now.getMonth() + 1).padStart(2, '0');
+                  const yyyy = now.getFullYear();
+                  if (desig.includes('hod') || desig.includes('head') || role.includes('admin') || desig.includes('director') || desig.includes('executive')) return `01/${mm}/${yyyy} (HOD / Exec)`;
+                  if (desig.includes('manager') || desig.includes('lead') || role.includes('manager')) return `05/${mm}/${yyyy} (Manager / Lead)`;
+                  if (desig.includes('intern') || desig.includes('trainee')) return `15/${mm}/${yyyy} (Intern / Trainee)`;
+                  return `10/${mm}/${yyyy} (Software Staff)`;
                 })()}
               </div>
-              <div className="text-[11px] text-slate-400">Fixed disbursement day of month</div>
+              <div className="text-[11px] text-slate-400">Numerical disbursement date (DD/MM/YYYY)</div>
             </div>
           </div>
 

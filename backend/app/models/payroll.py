@@ -32,6 +32,9 @@ class PayrollGenerateRequest(BaseModel):
     month: str  # YYYY-MM format, e.g. "2026-08"
     total_working_days: Optional[int] = 22
 
+class PaydayUpdateRequest(BaseModel):
+    scheduled_disbursement_date: str
+
 class PayrollSlipOut(BaseModel):
     id: str
     employee_id: str

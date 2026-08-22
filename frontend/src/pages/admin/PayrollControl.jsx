@@ -3,7 +3,7 @@ import { payrollApi } from '../../api/payrollApi';
 import { reportsApi } from '../../api/dashboardApi';
 import { Card } from '../../components/common/Card';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { DollarSign, Play, CheckCircle, Download, AlertCircle, Info, Lock, Calendar } from 'lucide-react';
+import { DollarSign, Play, CheckCircle, Download, AlertCircle, Info, Lock, Calendar, Edit2, Check, X } from 'lucide-react';
 
 export const PayrollControl = () => {
   const [slips, setSlips] = useState([]);
@@ -12,6 +12,11 @@ export const PayrollControl = () => {
   const [workingDays, setWorkingDays] = useState(22);
   const [genLoading, setGenLoading] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // HR Payday Inline Editing State
+  const [editingId, setEditingId] = useState(null);
+  const [editPaydayValue, setEditPaydayValue] = useState('');
+  const [savingPayday, setSavingPayday] = useState(false);
 
   const fetchPayrollSlips = async () => {
     setLoading(true);
@@ -56,6 +61,29 @@ export const PayrollControl = () => {
     }
   };
 
+  const handleStartEditPayday = (slip) => {
+    setEditingId(slip.id || slip._id);
+    const mSplit = month.split('-');
+    const defaultNumDate = `10/${mSplit[1]}/${mSplit[0]}`;
+    setEditPaydayValue(slip.scheduled_disbursement_date || defaultNumDate);
+  };
+
+  const handleSavePayday = async (slipId) => {
+    if (!editPaydayValue.trim()) return;
+    setSavingPayday(true);
+    try {
+      await payrollApi.updatePayday(slipId, editPaydayValue.trim());
+      setEditingId(null);
+      await fetchPayrollSlips();
+    } catch (err) {
+      alert(err || 'Failed to update payday date.');
+    } finally {
+      setSavingPayday(false);
+    }
+  };
+
+  const [yStr, mStr] = month.split('-');
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -72,7 +100,7 @@ export const PayrollControl = () => {
             <div className="text-xs font-bold text-brand-400 uppercase tracking-wider">Payroll Generation Engine</div>
             <h3 className="text-xl font-bold">Run Monthly Payroll Calculation</h3>
             <p className="text-xs text-slate-300">
-              Rule #2: Reads attendance records for target month and calculates per-day unpaid leave deductions.
+              Reads attendance records for target month and calculates per-day unpaid leave deductions.
             </p>
           </div>
 
@@ -115,7 +143,7 @@ export const PayrollControl = () => {
         )}
       </Card>
 
-      {/* Constant Salary Disbursement Schedule Matrix */}
+      {/* Constant Salary Disbursement Schedule Matrix with HR Edit Notice */}
       <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-md">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -123,25 +151,26 @@ export const PayrollControl = () => {
           </div>
           <div>
             <div className="text-sm font-extrabold text-white">Constant Role Payday Disbursement Schedule</div>
-            <div className="text-xs text-slate-400">Fixed monthly paydays automatically assigned based on employee designation & role tier</div>
+            <div className="text-xs text-slate-400">Fixed numerical dates (DD/MM/YYYY) automatically assigned per role tier. <span className="text-emerald-400 font-bold">HR can edit custom dates below.</span></div>
           </div>
         </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
             <span className="text-slate-400 font-medium block text-[10px] uppercase">HOD / Admin</span>
-            <strong className="text-emerald-400 font-mono text-xs">1st of Month</strong>
+            <strong className="text-emerald-400 font-mono text-xs">01/{mStr}/{yStr}</strong>
           </div>
           <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
             <span className="text-slate-400 font-medium block text-[10px] uppercase">Managers / Leads</span>
-            <strong className="text-emerald-400 font-mono text-xs">5th of Month</strong>
+            <strong className="text-emerald-400 font-mono text-xs">05/{mStr}/{yStr}</strong>
           </div>
           <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
             <span className="text-slate-400 font-medium block text-[10px] uppercase">Software Staff</span>
-            <strong className="text-emerald-400 font-mono text-xs">10th of Month</strong>
+            <strong className="text-emerald-400 font-mono text-xs">10/{mStr}/{yStr}</strong>
           </div>
           <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700">
             <span className="text-slate-400 font-medium block text-[10px] uppercase">Interns / Trainees</span>
-            <strong className="text-emerald-400 font-mono text-xs">15th of Month</strong>
+            <strong className="text-emerald-400 font-mono text-xs">15/{mStr}/{yStr}</strong>
           </div>
         </div>
       </div>
@@ -160,7 +189,7 @@ export const PayrollControl = () => {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Scheduled Payday</th>
+                  <th className="py-3 px-4">Payday Date (HR Editable)</th>
                   <th className="py-3 px-4">Attendance Breakdown</th>
                   <th className="py-3 px-4">Gross Salary</th>
                   <th className="py-3 px-4">Unpaid Deduction</th>
@@ -171,21 +200,64 @@ export const PayrollControl = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
                 {slips.map((slip) => {
+                  const sId = slip.id || slip._id;
                   const att = slip.attendance_summary || {};
                   const sb = slip.salary_breakdown || {};
                   const isFinal = slip.status === 'finalized';
+                  const isEditing = editingId === sId;
 
                   return (
-                    <tr key={slip.id || slip._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={sId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-3.5 px-4 font-extrabold text-slate-800 dark:text-slate-200">
                         <div>{slip.employee_name || slip.employee_id}</div>
                         <div className="text-xs text-slate-400 font-mono font-normal">{slip.employee_id}</div>
                       </td>
+
+                      {/* HR Editable Payday Date Column */}
                       <td className="py-3.5 px-4 text-xs font-semibold">
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono">
-                          🗓️ {slip.scheduled_disbursement_date || slip.scheduled_payday || '10th of month'}
-                        </span>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={editPaydayValue}
+                              placeholder="DD/MM/YYYY"
+                              onChange={(e) => setEditPaydayValue(e.target.value)}
+                              className="w-28 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-brand-500 font-mono text-xs text-slate-900 dark:text-white"
+                            />
+                            <button
+                              onClick={() => handleSavePayday(sId)}
+                              disabled={savingPayday}
+                              className="p-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                              title="Save Payday Date"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="p-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                              title="Cancel"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 group">
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono font-bold">
+                              🗓️ {slip.scheduled_disbursement_date || `10/${mStr}/${yStr}`}
+                            </span>
+                            {!isFinal && (
+                              <button
+                                onClick={() => handleStartEditPayday(slip)}
+                                className="p-1 rounded text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                                title="Edit Payday Date"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
+
                       <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-400">
                         <div>Present: <strong>{att.present ?? 0}</strong> | Half: {att.half_day ?? 0}</div>
                         {att.unpaid_leave > 0 && (

@@ -1,10 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.models.payroll import PayrollSlipOut, PayrollGenerateRequest
+from app.models.payroll import PayrollSlipOut, PayrollGenerateRequest, PaydayUpdateRequest
 from app.models.employee import SalaryStructure
 from app.services.payroll_service import (
     generate_payroll_for_employee, generate_bulk_payroll, finalize_payroll_slip,
-    get_employee_payroll_history, get_all_payroll_slips
+    get_employee_payroll_history, get_all_payroll_slips, update_payroll_payday
 )
 from app.services.employee_service import update_employee_admin, get_employee_profile
 from app.core.deps import require_employee, require_admin
@@ -42,6 +42,14 @@ async def finalize_slip(
     current_user: dict = Depends(require_admin)
 ):
     return await finalize_payroll_slip(slip_id, current_user["employee_id"])
+
+@router.put("/{slip_id}/payday", response_model=PayrollSlipOut)
+async def update_payday(
+    slip_id: str,
+    req: PaydayUpdateRequest,
+    current_user: dict = Depends(require_admin)
+):
+    return await update_payroll_payday(slip_id, req.scheduled_disbursement_date, current_user["employee_id"])
 
 @router.get("", response_model=List[PayrollSlipOut])
 async def list_payroll(

@@ -118,9 +118,9 @@ async def generate_payroll_for_employee(employee_id: str, month: str, generated_
     try:
         y_str, m_str = month.split("-")
         from datetime import date
-        disb_date = date(int(y_str), int(m_str), day_num).strftime("%d %b %Y")
+        disb_date = date(int(y_str), int(m_str), day_num).strftime("%d/%m/%Y")
     except Exception:
-        disb_date = f"{day_num}th of {month}"
+        disb_date = f"{String(day_num).zfill(2)}/{m_str}/2026"
     
     slip_doc = {
         "employee_id": employee_id,
@@ -228,3 +228,29 @@ async def get_all_payroll_slips(month: Optional[str] = None, status_filter: Opti
         s["id"] = str(s["_id"])
         s["_id"] = str(s["_id"])
     return slips
+
+async def update_payroll_payday(slip_id: str, scheduled_disbursement_date: str, admin_employee_id: str) -> dict:
+    db = get_database()
+    try:
+        obj_id = ObjectId(slip_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payroll slip ID.")
+        
+    slip = await db.payroll_slips.find_one({"_id": obj_id})
+    if not slip:
+        raise HTTPException(status_code=404, detail="Payroll slip not found.")
+        
+    await db.payroll_slips.update_one(
+        {"_id": obj_id},
+        {"$set": {
+            "scheduled_disbursement_date": scheduled_disbursement_date,
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    await log_activity(slip["employee_id"], "payroll_payday_updated", f"HR updated payday date for {slip['month']} to {scheduled_disbursement_date}")
+    
+    updated = await db.payroll_slips.find_one({"_id": obj_id})
+    updated["id"] = str(updated["_id"])
+    updated["_id"] = str(updated["_id"])
+    return updated
