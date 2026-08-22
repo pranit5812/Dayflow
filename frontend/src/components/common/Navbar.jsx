@@ -1,18 +1,33 @@
-import React from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileDropdown } from './ProfileDropdown';
-import { Sun, Moon, Users, Clock, Calendar, DollarSign, LayoutDashboard, ShieldCheck, User } from 'lucide-react';
+import { Sun, Moon, Clock, Calendar, ShieldCheck } from 'lucide-react';
 
 export const Navbar = () => {
   const { role, theme, toggleTheme } = useAuth();
+  const [now, setNow] = useState(new Date());
 
-  const navLinkStyle = ({ isActive }) =>
-    `flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-      isActive
-        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-    }`;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDate = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const formattedTime = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/80 dark:border-slate-800/80 px-4 lg:px-8 py-2.5 flex items-center justify-between transition-colors">
@@ -31,6 +46,15 @@ export const Navbar = () => {
             </span>
           </div>
         </Link>
+      </div>
+
+      {/* Live Date & Real-time Digital Clock Widget */}
+      <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 shadow-sm">
+        <Calendar className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+        <span>{formattedDate}</span>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0 animate-pulse" />
+        <span className="text-emerald-600 dark:text-emerald-400 font-black">{formattedTime}</span>
       </div>
 
       <div className="flex items-center gap-3">

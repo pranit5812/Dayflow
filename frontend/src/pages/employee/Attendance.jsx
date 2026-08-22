@@ -144,6 +144,11 @@ export const Attendance = () => {
             {todayAtt ? <StatusBadge status={todayAtt.status} /> : <span className="text-xs text-white/90">Not logged today</span>}
           </div>
 
+          <div className="text-[11px] font-mono font-bold text-white/90 mb-2 flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg">
+            <Clock className="w-3 h-3 text-emerald-400 animate-pulse" />
+            <span>Time: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+          </div>
+
           {msg && (
             <div className="mb-2 text-xs font-semibold px-2.5 py-1 rounded bg-white/20 text-white flex items-center gap-1.5">
               <AlertCircle className="w-3.5 h-3.5" /> {msg}
