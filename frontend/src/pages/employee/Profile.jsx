@@ -237,16 +237,16 @@ export const Profile = () => {
                       <select
                         value={dialCode}
                         onChange={(e) => setDialCode(e.target.value)}
-                        className="h-10 px-3 bg-slate-100 dark:bg-slate-700/80 border-r border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                        className="h-10 w-[92px] shrink-0 px-2 bg-slate-100 dark:bg-slate-700/80 border-r border-slate-200 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors text-center"
                       >
                         {countryDialCodes.map((c, i) => (
                           <option key={i} value={c.code}>
-                            {c.flag} {c.code} ({c.country})
+                            {c.flag} {c.code}
                           </option>
                         ))}
                       </select>
-                      <div className="relative flex-1 flex items-center">
-                        <Phone className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+                      <div className="relative flex-1 flex items-center min-w-0">
+                        <Phone className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none shrink-0" />
                         <input
                           type="text"
                           value={phoneNum}
@@ -298,7 +298,7 @@ export const Profile = () => {
                     >
                       {countryDialCodes.map((c, i) => (
                         <option key={i} value={c.nationality}>
-                          {c.flag} {c.nationality} ({c.country})
+                          {c.flag} {c.nationality}
                         </option>
                       ))}
                     </select>
