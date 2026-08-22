@@ -1,5 +1,6 @@
 import io
 import csv
+from typing import Optional
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from fpdf import FPDF
