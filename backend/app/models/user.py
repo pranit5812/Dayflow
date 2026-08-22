@@ -17,6 +17,14 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    login_id: str
+
+class ResetPasswordRequest(BaseModel):
+    login_id: str
+    otp_code: str
+    new_password: str = Field(..., min_length=8)
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str

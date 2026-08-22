@@ -160,3 +160,57 @@ async def refresh_access_token(refresh_token: str) -> dict:
 def from_config():
     from app.core.config import settings
     return settings.JWT_REFRESH_SECRET_KEY
+
+async def request_forgot_password(login_id: str) -> dict:
+    db = get_database()
+    clean_id = login_id.strip()
+    user = await db.users.find_one({
+        "$or": [
+            {"email": {"$regex": f"^{clean_id}$", "$options": "i"}},
+            {"employee_id": {"$regex": f"^{clean_id}$", "$options": "i"}}
+        ]
+    })
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No account found registered under '{login_id}'."
+        )
+
+    # Generate 6-digit OTP code for password reset verification
+    otp_code = str(random.randint(100000, 999999))
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"reset_otp": otp_code, "reset_otp_at": datetime.now(timezone.utc)}}
+    )
+
+    await log_activity(user["employee_id"], "forgot_password_requested", f"Password reset requested for {user['employee_id']}")
+    return {
+        "message": f"OTP verification code generated for {user.get('email')}.",
+        "otp_code": otp_code,
+        "email": user.get("email")
+    }
+
+async def reset_user_password(login_id: str, otp_code: str, new_password: str) -> dict:
+    db = get_database()
+    clean_id = login_id.strip()
+    user = await db.users.find_one({
+        "$or": [
+            {"email": {"$regex": f"^{clean_id}$", "$options": "i"}},
+            {"employee_id": {"$regex": f"^{clean_id}$", "$options": "i"}}
+        ]
+    })
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+
+    saved_otp = user.get("reset_otp")
+    if not saved_otp or str(saved_otp).strip() != str(otp_code).strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP verification code.")
+
+    new_hash = hash_password(new_password)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}, "$unset": {"reset_otp": ""}}
+    )
+
+    await log_activity(user["employee_id"], "password_reset_completed", f"Password successfully updated for {user['employee_id']}")
+    return {"message": "Password updated successfully! You can now sign in."}
