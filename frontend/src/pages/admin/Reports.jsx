@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axiosClient from '../../api/axiosClient';
 import { reportsApi } from '../../api/dashboardApi';
 import { attendanceApi } from '../../api/attendanceApi';
 import { leaveApi } from '../../api/leaveApi';
@@ -13,6 +14,7 @@ export const Reports = () => {
   const navigate = useNavigate();
   const [targetMonth, setTargetMonth] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState('');
 
   // Live Synchronized State Data from MongoDB
   const [attendanceData, setAttendanceData] = useState([]);
@@ -42,6 +44,36 @@ export const Reports = () => {
     };
     fetchSyncData();
   }, [targetMonth]);
+
+  // Authenticated CSV Download Handler with Blob & Token Query Fallback
+  const handleDownloadCsv = async (url, fileName) => {
+    setDownloading(fileName);
+    try {
+      const token = localStorage.getItem('dayflow_token');
+      const fullUrl = url.includes('?') ? `${url}&token=${token || ''}` : `${url}?token=${token || ''}`;
+
+      const res = await axiosClient.get(url, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Download error:', err);
+      const token = localStorage.getItem('dayflow_token');
+      const fullUrl = url.includes('?') ? `${url}&token=${token || ''}` : `${url}?token=${token || ''}`;
+      window.open(fullUrl, '_blank');
+    } finally {
+      setDownloading('');
+    }
+  };
 
   // Aggregate live metrics
   const totalEmployees = employeeData.length || 0;
@@ -187,13 +219,14 @@ export const Reports = () => {
               <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Target Month: {targetMonth}</div>
               <div className="text-xs text-slate-500">Formatted with UTF-8 BOM for Microsoft Excel</div>
             </div>
-            <a
-              href={reportsApi.getAttendanceCsvUrl(targetMonth)}
-              download={`Dayflow_Attendance_${targetMonth}.csv`}
-              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all"
+            <button
+              onClick={() => handleDownloadCsv(reportsApi.getAttendanceCsvUrl(targetMonth), `Dayflow_Attendance_${targetMonth}.csv`)}
+              disabled={downloading === `Dayflow_Attendance_${targetMonth}.csv`}
+              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              <FileSpreadsheet className="w-4 h-4" /> Download Excel CSV
-            </a>
+              <FileSpreadsheet className="w-4 h-4" />
+              {downloading === `Dayflow_Attendance_${targetMonth}.csv` ? 'Exporting...' : 'Download Excel CSV'}
+            </button>
           </div>
         </Card>
 
@@ -203,13 +236,14 @@ export const Reports = () => {
               <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Target Month: {targetMonth}</div>
               <div className="text-xs text-slate-500">Includes scheduled numerical payday dates</div>
             </div>
-            <a
-              href={reportsApi.getPayrollCsvUrl(targetMonth)}
-              download={`Dayflow_Payroll_${targetMonth}.csv`}
-              className="py-2.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all"
+            <button
+              onClick={() => handleDownloadCsv(reportsApi.getPayrollCsvUrl(targetMonth), `Dayflow_Payroll_${targetMonth}.csv`)}
+              disabled={downloading === `Dayflow_Payroll_${targetMonth}.csv`}
+              className="py-2.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              <FileSpreadsheet className="w-4 h-4" /> Download Excel CSV
-            </a>
+              <FileSpreadsheet className="w-4 h-4" />
+              {downloading === `Dayflow_Payroll_${targetMonth}.csv` ? 'Exporting...' : 'Download Excel CSV'}
+            </button>
           </div>
         </Card>
 
@@ -219,13 +253,14 @@ export const Reports = () => {
               <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Time-off Register</div>
               <div className="text-xs text-slate-500">Includes admin remarks and requested date ranges</div>
             </div>
-            <a
-              href={reportsApi.getLeaveCsvUrl(targetMonth)}
-              download={`Dayflow_Leave_Report_${targetMonth}.csv`}
-              className="py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all"
+            <button
+              onClick={() => handleDownloadCsv(reportsApi.getLeaveCsvUrl(targetMonth), `Dayflow_Leave_Report_${targetMonth}.csv`)}
+              disabled={downloading === `Dayflow_Leave_Report_${targetMonth}.csv`}
+              className="py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              <FileSpreadsheet className="w-4 h-4" /> Download Excel CSV
-            </a>
+              <FileSpreadsheet className="w-4 h-4" />
+              {downloading === `Dayflow_Leave_Report_${targetMonth}.csv` ? 'Exporting...' : 'Download Excel CSV'}
+            </button>
           </div>
         </Card>
 
@@ -235,13 +270,14 @@ export const Reports = () => {
               <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Full Employee Roster</div>
               <div className="text-xs text-slate-500">Complete workforce directory audit statement</div>
             </div>
-            <a
-              href={reportsApi.getEmployeesCsvUrl()}
-              download="Dayflow_Employee_Master_Report.csv"
-              className="py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all"
+            <button
+              onClick={() => handleDownloadCsv(reportsApi.getEmployeesCsvUrl(), 'Dayflow_Employee_Master_Report.csv')}
+              disabled={downloading === 'Dayflow_Employee_Master_Report.csv'}
+              className="py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              <FileSpreadsheet className="w-4 h-4" /> Download Excel CSV
-            </a>
+              <FileSpreadsheet className="w-4 h-4" />
+              {downloading === 'Dayflow_Employee_Master_Report.csv' ? 'Exporting...' : 'Download Excel CSV'}
+            </button>
           </div>
         </Card>
       </div>

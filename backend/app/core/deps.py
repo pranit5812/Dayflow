@@ -1,16 +1,27 @@
-from fastapi import Depends, HTTPException, status
+from typing import Optional
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from app.core.security import decode_token
 from app.db.mongodb import get_database
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(request: Request, header_token: Optional[str] = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # 1. Try Bearer header token
+    token = header_token
+    
+    # 2. Fallback to query parameter ?token=... (for direct download links)
+    if not token:
+        token = request.query_params.get("token")
+        
+    if not token:
+        raise credentials_exception
     
     payload = decode_token(token)
     if not payload or payload.get("type") != "access":
