@@ -428,17 +428,17 @@ export const Profile = () => {
       {activeTab === 'salary' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="!p-6 bg-gradient-to-tr from-brand-600 to-sky-600 text-white">
+            <div className="p-6 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-700 to-sky-600 text-white shadow-xl border border-brand-500/30">
               <div className="text-xs font-bold uppercase text-brand-100 tracking-wider">Monthly Base Wage</div>
-              <div className="text-3xl font-black mt-2">₹ {monthlyWage.toLocaleString()}</div>
-              <div className="text-xs text-brand-100 mt-1">Calculated base gross earnings per month</div>
-            </Card>
+              <div className="text-3xl font-black mt-2 text-white">₹ {monthlyWage.toLocaleString()}</div>
+              <div className="text-xs text-brand-100 mt-1 font-medium">Calculated base gross earnings per month</div>
+            </div>
 
-            <Card className="!p-6 bg-gradient-to-tr from-purple-700 to-slate-900 text-white">
+            <div className="p-6 rounded-2xl bg-gradient-to-tr from-purple-700 via-slate-900 to-brand-950 text-white shadow-xl border border-purple-500/30">
               <div className="text-xs font-bold uppercase text-purple-200 tracking-wider">Annual Base CTC</div>
-              <div className="text-3xl font-black mt-2">₹ {yearlyWage.toLocaleString()}</div>
-              <div className="text-xs text-purple-200 mt-1">Annualized base gross compensation package</div>
-            </Card>
+              <div className="text-3xl font-black mt-2 text-white">₹ {yearlyWage.toLocaleString()}</div>
+              <div className="text-xs text-purple-200 mt-1 font-medium">Annualized base gross compensation package</div>
+            </div>
           </div>
 
           <Card title="Detailed Salary Component Structure" subtitle={role === 'admin' ? "Editable by Admin" : "Read-only for employee"}>
