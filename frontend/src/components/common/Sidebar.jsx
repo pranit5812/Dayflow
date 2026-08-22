@@ -6,7 +6,7 @@ import {
   User, Clock, Calendar, DollarSign, Users, 
   LayoutDashboard, BarChart3, Shield, Mail, ExternalLink, 
   Headphones, PhoneCall, ChevronRight, UserCheck, Briefcase, Building2,
-  Phone, AlertTriangle, ShieldCheck
+  Phone, AlertTriangle, ShieldCheck, UserPlus
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -22,6 +22,7 @@ export const Sidebar = () => {
 
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { to: '/admin/recruitment', label: 'Recruitment (ATS)', icon: UserPlus },
     { to: '/admin/employees', label: 'Employees', icon: Users },
     { to: '/admin/attendance', label: 'Attendance', icon: Clock },
     { to: '/admin/time-off', label: 'Time Off Approvals', icon: Calendar },

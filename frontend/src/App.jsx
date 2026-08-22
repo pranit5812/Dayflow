@@ -23,6 +23,7 @@ import { AttendanceRecords } from './pages/admin/AttendanceRecords';
 import { LeaveApprovals } from './pages/admin/LeaveApprovals';
 import { PayrollControl } from './pages/admin/PayrollControl';
 import { Reports } from './pages/admin/Reports';
+import { Recruitment } from './pages/admin/Recruitment';
 
 const AppLayout = () => {
   return (
@@ -53,6 +54,7 @@ const AppLayout = () => {
               <Route path="/admin/time-off" element={<LeaveApprovals />} />
               <Route path="/admin/payroll" element={<PayrollControl />} />
               <Route path="/admin/reports" element={<Reports />} />
+              <Route path="/admin/recruitment" element={<Recruitment />} />
             </Route>
 
             {/* Default Catchall */}

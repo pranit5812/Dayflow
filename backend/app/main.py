@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
 from app.db.indexes import create_indexes
-from app.routers import auth, employees, attendance, leave, payroll, dashboard, reports
+from app.routers import auth, employees, attendance, leave, payroll, dashboard, reports, recruitment
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("dayflow.main")
@@ -43,6 +43,7 @@ app.include_router(leave.router)
 app.include_router(payroll.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(recruitment.router)
 
 @app.get("/")
 async def root():
