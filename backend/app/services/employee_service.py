@@ -53,11 +53,19 @@ async def update_employee_self(employee_id: str, update_data: EmployeeSelfUpdate
         update_dict["personal_details.address"] = update_data.address
     if update_data.profile_picture_url is not None:
         update_dict["personal_details.profile_picture_url"] = update_data.profile_picture_url
+    if update_data.personal_email is not None:
+        update_dict["personal_details.personal_email"] = update_data.personal_email
+    if update_data.gender is not None:
+        update_dict["personal_details.gender"] = update_data.gender
+    if update_data.nationality is not None:
+        update_dict["personal_details.nationality"] = update_data.nationality
+    if update_data.marital_status is not None:
+        update_dict["personal_details.marital_status"] = update_data.marital_status
     
     if update_dict:
         update_dict["updated_at"] = datetime.now(timezone.utc)
         await db.employees.update_one({"employee_id": employee_id}, {"$set": update_dict})
-        await log_activity(employee_id, "profile_updated", "Updated profile contact details")
+        await log_activity(employee_id, "profile_updated", "Updated profile details and avatar")
     
     return await get_employee_profile(employee_id)
 

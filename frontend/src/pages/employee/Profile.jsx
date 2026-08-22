@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { employeeApi } from '../../api/employeeApi';
 import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/common/Card';
+import { Modal } from '../../components/common/Modal';
 import { 
   User, Phone, MapPin, Briefcase, DollarSign, FileText, Upload, Save, 
-  CheckCircle, Shield, Award, Landmark, CreditCard, Mail, Calendar, FileBadge, Lock
+  CheckCircle, Shield, Award, Landmark, CreditCard, Mail, Calendar, FileBadge, Lock,
+  Camera, Image, Sparkles, Check
 } from 'lucide-react';
 
 const countryDialCodes = [
@@ -20,6 +22,15 @@ const countryDialCodes = [
   { code: '+81', country: 'Japan', flag: '🇯🇵', nationality: 'Japanese' },
 ];
 
+const presetAvatars = [
+  { name: 'Tech Specialist', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80' },
+  { name: 'Senior Developer', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80' },
+  { name: 'HR Manager', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80' },
+  { name: 'Executive Leader', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80' },
+  { name: 'Creative Strategist', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80' },
+  { name: 'Operations Lead', url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80' },
+];
+
 export const Profile = () => {
   const { role, userProfile, setUserProfile } = useAuth();
   const [profile, setProfile] = useState(userProfile);
@@ -27,7 +38,7 @@ export const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
-  // Tab State: 'personal' | 'private' | 'resume' | 'skills' | 'salary'
+  // Tab State: 'personal' | 'private' | 'skills' | 'salary'
   const [activeTab, setActiveTab] = useState('personal');
 
   // Editable Personal Fields State
@@ -40,10 +51,10 @@ export const Profile = () => {
   const [nationality, setNationality] = useState('Indian');
   const [maritalStatus, setMaritalStatus] = useState('Single');
 
-  // Editable Document State
-  const [docName, setDocName] = useState('');
-  const [docUrl, setDocUrl] = useState('');
-  const [docLoading, setDocLoading] = useState(false);
+  // Avatar Modal State
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [customAvatarUrl, setCustomAvatarUrl] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -62,7 +73,10 @@ export const Profile = () => {
         }
 
         setAddress(res?.personal_details?.address || '');
-        setProfilePic(res?.personal_details?.profile_picture_url || '');
+        const currentPic = res?.personal_details?.profile_picture_url || '';
+        setProfilePic(currentPic);
+        setSelectedAvatar(currentPic);
+        setCustomAvatarUrl(currentPic);
         setPersonalEmail(res?.personal_details?.personal_email || '');
         setGender(res?.personal_details?.gender || 'Male');
         
@@ -93,7 +107,7 @@ export const Profile = () => {
   };
 
   const handleSelfUpdate = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSaving(true);
     setMsg('');
 
@@ -119,21 +133,45 @@ export const Profile = () => {
     }
   };
 
-  const handleDocUpload = async (e) => {
-    e.preventDefault();
-    if (!docName || !docUrl) return;
-    setDocLoading(true);
+  // Direct File Upload Handler (Base64)
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Url = reader.result;
+        setSelectedAvatar(base64Url);
+        setCustomAvatarUrl(base64Url);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
+  const handleSaveAvatar = async () => {
+    const finalUrl = selectedAvatar || customAvatarUrl;
+    if (!finalUrl) return;
+
+    setSaving(true);
     try {
-      const updated = await employeeApi.uploadDocument(profile.employee_id, docName, docUrl);
+      const formattedPhone = `${dialCode} ${phoneNum.trim()}`.trim();
+      const updated = await employeeApi.updateMyProfile({
+        phone: formattedPhone,
+        address,
+        profile_picture_url: finalUrl,
+        personal_email: personalEmail,
+        gender,
+        nationality,
+        marital_status: maritalStatus
+      });
+      setProfilePic(finalUrl);
       setProfile(updated);
       setUserProfile(updated);
-      setDocName('');
-      setDocUrl('');
+      setIsAvatarModalOpen(false);
+      setMsg('Profile picture updated successfully!');
     } catch (err) {
-      alert(err || 'Failed to upload document.');
+      alert(err || 'Failed to update profile picture.');
     } finally {
-      setDocLoading(false);
+      setSaving(false);
     }
   };
 
@@ -146,7 +184,6 @@ export const Profile = () => {
   const privateInfo = profile?.private_details || {};
   const skillsInfo = profile?.skills_certifications || {};
   const salary = profile?.salary_structure || {};
-  const docs = profile?.documents || [];
 
   const monthlyWage = (salary.basic || 0) + (salary.hra || 0) + (salary.allowances || 0);
   const yearlyWage = monthlyWage * 12;
@@ -158,19 +195,41 @@ export const Profile = () => {
         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
     }`;
 
+  const avatarSrc = personal.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(personal.full_name || 'User')}&background=0c8de4&color=fff`;
+
   return (
-    <div className="space-y-6">
-      {/* Header Profile Banner matching Excalidraw */}
+    <div className="space-y-6 font-sans">
+      {/* Header Profile Banner with Interactive Avatar Upload Overlay */}
       <div className="glass-panel rounded-3xl p-6 lg:p-8 flex flex-col md:flex-row items-center gap-6 shadow-xl relative overflow-hidden">
-        <img
-          src={personal.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(personal.full_name || 'User')}&background=0c8de4&color=fff`}
-          alt={personal.full_name}
-          className="w-28 h-28 rounded-2xl object-cover border-4 border-brand-500/30 shadow-xl"
-        />
+        
+        {/* Profile Picture Avatar with Hover Overlay */}
+        <div className="relative group cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
+          <img
+            src={avatarSrc}
+            alt={personal.full_name}
+            className="w-28 h-28 rounded-2xl object-cover border-4 border-brand-500/30 shadow-xl transition-all group-hover:opacity-85"
+          />
+          <div className="absolute inset-0 bg-slate-900/60 rounded-2xl opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white text-xs font-bold gap-1">
+            <Camera className="w-6 h-6" />
+            <span>Change</span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsAvatarModalOpen(true);
+            }}
+            className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/40 hover:bg-brand-600 transition-transform hover:scale-110"
+            title="Change Profile Picture"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="text-center md:text-left flex-1">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-1">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white">{personal.full_name || profile?.employee_id}</h1>
-            <span className="text-xs font-bold px-2 py-0.5 rounded bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300 border border-brand-300 dark:border-brand-800">
               {job.company || 'Dayflow HRMS'}
             </span>
           </div>
@@ -197,7 +256,7 @@ export const Profile = () => {
         </div>
       </div>
 
-      {/* Excalidraw Sub-Tabs Bar */}
+      {/* Sub-Tabs Bar */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl glass-panel border border-slate-200/80 dark:border-slate-800">
         <button onClick={() => setActiveTab('personal')} className={tabStyle('personal')}>
           <User className="w-3.5 h-3.5" /> Personal / Job Info
@@ -402,9 +461,7 @@ export const Profile = () => {
         </Card>
       )}
 
-
-
-      {/* Tab 4: Skills & Certifications */}
+      {/* Tab 3: Skills & Certifications */}
       {activeTab === 'skills' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card title="Technical & Professional Skills" subtitle="Core competencies verified in Dayflow">
@@ -430,7 +487,7 @@ export const Profile = () => {
         </div>
       )}
 
-      {/* Tab 5: Salary Information matching Excalidraw */}
+      {/* Tab 4: Salary Information */}
       {activeTab === 'salary' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -484,6 +541,105 @@ export const Profile = () => {
           </Card>
         </div>
       )}
+
+      {/* Modal: Change Profile Picture / Avatar */}
+      <Modal isOpen={isAvatarModalOpen} onClose={() => setIsAvatarModalOpen(false)} title="Update Profile Picture / Avatar">
+        <div className="space-y-6">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Upload an image file from your computer, choose from professional avatar presets, or paste a custom image URL.
+          </p>
+
+          {/* Current / Selected Preview */}
+          <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <div className="relative">
+              <img
+                src={selectedAvatar || customAvatarUrl || avatarSrc}
+                alt="Avatar Preview"
+                className="w-24 h-24 rounded-2xl object-cover border-4 border-brand-500 shadow-xl"
+              />
+              <span className="absolute -bottom-2 -right-2 p-1.5 rounded-full bg-emerald-500 text-white shadow-md">
+                <Check className="w-3.5 h-3.5" />
+              </span>
+            </div>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-2">Active Preview</span>
+          </div>
+
+          {/* Option A: Direct File Upload */}
+          <div>
+            <label className="block text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Upload className="w-4 h-4 text-brand-500" /> Option 1: Upload File from Computer
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 dark:file:bg-brand-950 dark:file:text-brand-300 hover:file:bg-brand-100 cursor-pointer"
+            />
+          </div>
+
+          {/* Option B: Preset Avatar Gallery */}
+          <div>
+            <label className="block text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-500" /> Option 2: Select Professional Avatar Preset
+            </label>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {presetAvatars.map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setSelectedAvatar(preset.url);
+                    setCustomAvatarUrl(preset.url);
+                  }}
+                  className={`p-1 rounded-xl border transition-all hover:scale-105 ${
+                    selectedAvatar === preset.url
+                      ? 'border-brand-500 ring-2 ring-brand-500 bg-brand-500/10'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-brand-400'
+                  }`}
+                  title={preset.name}
+                >
+                  <img src={preset.url} alt={preset.name} className="w-12 h-12 rounded-lg object-cover mx-auto" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Option C: Custom Image URL */}
+          <div>
+            <label className="block text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Image className="w-4 h-4 text-sky-500" /> Option 3: Custom Web Image URL
+            </label>
+            <input
+              type="text"
+              placeholder="https://example.com/my-photo.jpg"
+              value={customAvatarUrl}
+              onChange={(e) => {
+                setCustomAvatarUrl(e.target.value);
+                setSelectedAvatar(e.target.value);
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
+            />
+          </div>
+
+          <div className="pt-2 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(false)}
+              className="py-2 px-4 rounded-xl text-slate-600 dark:text-slate-400 font-semibold text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAvatar}
+              disabled={saving}
+              className="py-2.5 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50"
+            >
+              {saving ? 'Updating Avatar...' : 'Save Profile Picture'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
