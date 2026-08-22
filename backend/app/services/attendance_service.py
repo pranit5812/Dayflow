@@ -50,21 +50,29 @@ async def check_out(employee_id: str) -> dict:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You must check in before checking out."
         )
+
+    if existing.get("check_out"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Already checked out for today."
+        )
     
     check_in_time = existing["check_in"]
     if isinstance(check_in_time, str):
         check_in_time = datetime.fromisoformat(check_in_time.replace("Z", "+00:00"))
+    if check_in_time.tzinfo is None:
+        check_in_time = check_in_time.replace(tzinfo=timezone.utc)
         
     duration_seconds = (now - check_in_time).total_seconds()
-    work_hours = round(duration_seconds / 3600.0, 2)
+    work_hours = round(max(0.0, duration_seconds / 3600.0), 2)
     
-    # Calculate status based on work hours policy
-    if work_hours >= 8.0:
+    # 7-Hour Threshold Policy:
+    # If work hours < 7.0 hrs -> Half-day
+    # If work hours >= 7.0 hrs -> Present (Full Day)
+    if work_hours >= 7.0:
         att_status = AttendanceStatus.PRESENT.value
-    elif work_hours >= 4.0:
-        att_status = AttendanceStatus.HALF_DAY.value
     else:
-        att_status = AttendanceStatus.ABSENT.value
+        att_status = AttendanceStatus.HALF_DAY.value
         
     await db.attendance.update_one(
         {"_id": existing["_id"]},
@@ -75,8 +83,20 @@ async def check_out(employee_id: str) -> dict:
             "updated_at": now
         }}
     )
+
+    # HR Notification & Alert System
+    emp = await db.employees.find_one({"employee_id": employee_id})
+    emp_name = emp.get("personal_details", {}).get("full_name") if emp else employee_id
+    if not emp_name:
+        emp_name = employee_id
+
+    if att_status == AttendanceStatus.HALF_DAY.value:
+        alert_msg = f"⚠️ HALF-DAY ALERT: Employee {emp_name} ({employee_id}) checked out early after {work_hours} hrs (< 7 hrs) - Recorded as Half-Day."
+        await log_activity(employee_id, "hr_half_day_alert", alert_msg)
+    else:
+        notice_msg = f"✅ FULL-DAY NOTIFICATION: Employee {emp_name} ({employee_id}) completed full shift ({work_hours} hrs >= 7 hrs) - Recorded as Present."
+        await log_activity(employee_id, "hr_full_day_notice", notice_msg)
     
-    await log_activity(employee_id, "attendance_marked", f"Checked out for {today_str} ({work_hours} hrs)")
     return await get_today_attendance(employee_id)
 
 async def get_today_attendance(employee_id: str) -> Optional[dict]:
@@ -85,19 +105,30 @@ async def get_today_attendance(employee_id: str) -> Optional[dict]:
     record = await db.attendance.find_one({"employee_id": employee_id, "date": today_str})
     if record:
         record["_id"] = str(record["_id"])
+        if isinstance(record.get("check_in"), datetime):
+            record["check_in"] = record["check_in"].isoformat()
+        if isinstance(record.get("check_out"), datetime):
+            record["check_out"] = record["check_out"].isoformat()
+        if isinstance(record.get("updated_at"), datetime):
+            record["updated_at"] = record["updated_at"].isoformat()
     return record
 
 async def get_employee_attendance_history(employee_id: str, month: Optional[str] = None) -> List[dict]:
     db = get_database()
     query = {"employee_id": employee_id}
     if month:
-        # month is YYYY-MM
         query["date"] = {"$regex": f"^{month}"}
         
     cursor = db.attendance.find(query).sort("date", -1)
     records = await cursor.to_list(length=365)
     for r in records:
         r["_id"] = str(r["_id"])
+        if isinstance(r.get("check_in"), datetime):
+            r["check_in"] = r["check_in"].isoformat()
+        if isinstance(r.get("check_out"), datetime):
+            r["check_out"] = r["check_out"].isoformat()
+        if isinstance(r.get("updated_at"), datetime):
+            r["updated_at"] = r["updated_at"].isoformat()
     return records
 
 async def get_org_attendance(date_str: Optional[str] = None, month: Optional[str] = None) -> List[dict]:
@@ -112,6 +143,12 @@ async def get_org_attendance(date_str: Optional[str] = None, month: Optional[str
     records = await cursor.to_list(length=1000)
     for r in records:
         r["_id"] = str(r["_id"])
+        if isinstance(r.get("check_in"), datetime):
+            r["check_in"] = r["check_in"].isoformat()
+        if isinstance(r.get("check_out"), datetime):
+            r["check_out"] = r["check_out"].isoformat()
+        if isinstance(r.get("updated_at"), datetime):
+            r["updated_at"] = r["updated_at"].isoformat()
     return records
 
 async def manual_attendance_update(update_data: AttendanceManualUpdate) -> dict:
@@ -150,11 +187,8 @@ async def manual_attendance_update(update_data: AttendanceManualUpdate) -> dict:
         f"Attendance for {update_data.date} manually set to {update_data.status.value} by Admin"
     )
     
-    record = await db.attendance.find_one({"employee_id": update_data.employee_id, "date": update_data.date})
-    record["_id"] = str(record["_id"])
-    return record
+    return await get_today_attendance(update_data.employee_id)
 
-# RULE #1: Leave -> Attendance Auto-Sync Engine
 async def sync_leave_to_attendance(employee_id: str, start_date_str: str, end_date_str: str):
     """
     When Admin approves a LeaveRequest, auto-generate/update Attendance records
