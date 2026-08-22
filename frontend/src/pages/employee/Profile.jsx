@@ -231,13 +231,13 @@ export const Profile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                      Phone Number (Dial Code)
+                      Phone Number
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:ring-2 focus-within:ring-brand-500/50 focus-within:border-brand-500 transition-all shadow-sm">
                       <select
                         value={dialCode}
                         onChange={(e) => setDialCode(e.target.value)}
-                        className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white shrink-0"
+                        className="h-10 px-3 bg-slate-100 dark:bg-slate-700/80 border-r border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
                       >
                         {countryDialCodes.map((c, i) => (
                           <option key={i} value={c.code}>
@@ -245,14 +245,14 @@ export const Profile = () => {
                           </option>
                         ))}
                       </select>
-                      <div className="relative w-full">
-                        <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                      <div className="relative flex-1 flex items-center">
+                        <Phone className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
                           value={phoneNum}
                           onChange={(e) => setPhoneNum(e.target.value)}
                           placeholder="98765 43210"
-                          className="w-full pl-10 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white font-mono"
+                          className="w-full pl-9 pr-3 py-2 bg-transparent text-sm text-slate-900 dark:text-white font-mono outline-none"
                         />
                       </div>
                     </div>
@@ -262,14 +262,14 @@ export const Profile = () => {
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                       Personal Email
                     </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <div className="relative flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:ring-2 focus-within:ring-brand-500/50 focus-within:border-brand-500 transition-all shadow-sm">
+                      <Mail className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
                       <input
                         type="email"
                         value={personalEmail}
                         onChange={(e) => setPersonalEmail(e.target.value)}
                         placeholder="personal@gmail.com"
-                        className="w-full pl-10 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-sm text-slate-900 dark:text-white outline-none"
                       />
                     </div>
                   </div>
@@ -281,7 +281,7 @@ export const Profile = () => {
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white"
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all shadow-sm"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -294,7 +294,7 @@ export const Profile = () => {
                     <select
                       value={nationality}
                       onChange={(e) => handleNationalityChange(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white font-semibold"
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white font-semibold focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all shadow-sm"
                     >
                       {countryDialCodes.map((c, i) => (
                         <option key={i} value={c.nationality}>
@@ -309,7 +309,7 @@ export const Profile = () => {
                     <select
                       value={maritalStatus}
                       onChange={(e) => setMaritalStatus(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white"
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all shadow-sm"
                     >
                       <option value="Single">Single</option>
                       <option value="Married">Married</option>
